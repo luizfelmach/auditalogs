@@ -1,22 +1,12 @@
-use core::fmt;
-
 use futures_lite::StreamExt;
 use lapin::{
     message::Delivery,
-    options::{BasicAckOptions, BasicConsumeOptions},
+    options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions},
     types::FieldTable,
     Connection, ConnectionProperties, Consumer, Result as LapinResult,
 };
+use std::error::Error;
 use tracing::{event, info, warn, Level};
-
-#[derive(Debug)]
-pub enum ProcessorError {}
-
-impl fmt::Display for ProcessorError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Display format not implemented yet")
-    }
-}
 
 #[derive(Debug)]
 pub struct Rabbitmq {
@@ -43,7 +33,7 @@ impl Rabbitmq {
 
     pub async fn consumer<F>(&mut self, processor: F)
     where
-        F: Fn(Vec<Vec<u8>>) -> Result<(), ProcessorError>,
+        F: Fn(Vec<Vec<u8>>) -> Result<(), Box<dyn Error>>,
     {
         let mut batching: Vec<Delivery> = Vec::new();
 
