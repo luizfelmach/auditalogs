@@ -29,12 +29,12 @@ pub struct Rabbitmq {
 }
 
 impl Rabbitmq {
-    pub async fn new(uri: String, queue: String, batch: usize) -> LapinResult<Self> {
-        let connection = Connection::connect(&uri, ConnectionProperties::default()).await?;
+    pub async fn new(uri: &str, queue: &str, batch: usize) -> LapinResult<Self> {
+        let connection = Connection::connect(uri, ConnectionProperties::default()).await?;
         let channel = connection.create_channel().await?;
         let consumer = channel
             .basic_consume(
-                &queue,
+                queue,
                 "consumer",
                 BasicConsumeOptions::default(),
                 FieldTable::default(),

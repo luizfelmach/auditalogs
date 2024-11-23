@@ -1,38 +1,24 @@
+use elastic::Elastic;
 use rabbitmq::Rabbitmq;
-use uuid::Uuid;
 
+mod elastic;
 mod hashing;
 mod rabbitmq;
 
-// fn save_on_chain(id: &String, hash: &String) -> Result<(), SaveError> {
-//     Ok(())
-// }
-
-// fn save_off_chain(id: &String, hash: &String) -> Result<(), SaveError> {
-//     Ok(())
-// }
-
-// fn procesor(data: Vec<Vec<u8>>) -> Result<(), SaveError> {
-//     save_on_chain(&id, &hash).unwrap();
-//     save_off_chain(&id, &hash).unwrap();
-//     Ok(())
-// }
-
 #[tokio::main]
 async fn main() {
-    let mut client = Rabbitmq::new(
-        "amqp://rabbit:changeme@localhost:5672".into(),
-        "queue".into(),
-        100,
-    )
-    .await
-    .expect("error connecting to rabbitmq");
+    let elastic = Elastic::new("http://localhost:9200", "elastic", "changeme");
 
-    client
+    let mut rabbit = Rabbitmq::new("amqp://rabbit:changeme@localhost:5672", "queue", 100)
+        .await
+        .expect("error connecting to rabbitmq");
+
+    rabbit
         .consumer(|messages: Vec<Vec<u8>>| {
-            let id = Uuid::new_v4().to_string();
             let hash = hashing::fingerprint(&messages);
-            println!("{id} with {hash}");
+
+            elastic.store_data(&hash, &messages).unwrap();
+
             Ok(())
         })
         .await;
