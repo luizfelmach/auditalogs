@@ -1,3 +1,4 @@
+use alloy::primitives::address;
 use elastic::Elastic;
 use rabbitmq::Rabbitmq;
 use std::error::Error;
@@ -5,6 +6,7 @@ use tracing::{error, warn, Level};
 use tracing_subscriber;
 
 mod elastic;
+mod ethereum;
 mod hashing;
 mod rabbitmq;
 
@@ -14,6 +16,7 @@ const ELASTIC_PASSWORD: &str = "changeme";
 const RABBIT_URL: &str = "amqp://rabbit:changeme@localhost:5672";
 const RABBIT_QUEUE: &str = "queue";
 const RABBIT_BATCH: usize = 100;
+const RPC_URL: &str = "http://localhost:8545";
 
 #[tokio::main]
 async fn main() {
@@ -35,6 +38,10 @@ async fn main() {
 async fn listen() -> Result<(), Box<dyn Error>> {
     let elastic = Elastic::new(ELASTIC_URL, ELASTIC_USER, ELASTIC_PASSWORD)?;
     let mut rabbit = Rabbitmq::new(RABBIT_URL, RABBIT_QUEUE, RABBIT_BATCH).await?;
+    let _contract = ethereum::Contract(
+        RPC_URL,
+        address!("5fbdb2315678afecb367f032d93f642f64180aa3"),
+    )?;
 
     rabbit
         .consumer(|messages: Vec<Vec<u8>>| {
