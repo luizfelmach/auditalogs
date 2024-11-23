@@ -7,18 +7,14 @@ use lapin::{
     types::FieldTable,
     Connection, ConnectionProperties, Consumer, Result as LapinResult,
 };
+use tracing::{event, info, warn, Level};
 
 #[derive(Debug)]
-pub enum ProcessorError {
-    InvalidData(Option<String>),
-}
+pub enum ProcessorError {}
 
 impl fmt::Display for ProcessorError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProcessorError::InvalidData(Some(str)) => write!(f, "invalid data to processor: {str}"),
-            ProcessorError::InvalidData(None) => write!(f, "invalid data to processor"),
-        }
+        write!(f, "Display format not implemented yet")
     }
 }
 
@@ -40,6 +36,8 @@ impl Rabbitmq {
                 FieldTable::default(),
             )
             .await?;
+
+        info!("Connected to RabbitMQ at {uri}. The message exchange has begun!");
         Ok(Rabbitmq { consumer, batch })
     }
 
@@ -49,11 +47,19 @@ impl Rabbitmq {
     {
         let mut batching: Vec<Delivery> = Vec::new();
 
+        info!("Waiting for messages in the queue. Ready to process!");
+
         while let Some(delivery) = self.consumer.next().await {
             if let Ok(delivery) = delivery {
                 batching.push(delivery);
 
                 if batching.len() >= self.batch {
+                    event!(
+                        Level::INFO,
+                        "Received {} messages in the queue. Ready to process.",
+                        batching.len()
+                    );
+
                     let mut messages = Vec::new();
 
                     for delivery in &batching {
@@ -61,7 +67,8 @@ impl Rabbitmq {
                     }
 
                     if let Err(error) = processor(messages) {
-                        println!("error to processor messages: {}", error);
+                        warn!("Failed to process messages: {error}");
+                        warn!("Returning them to the queue for retry.");
                         batching.clear();
                         continue;
                     }
@@ -70,7 +77,7 @@ impl Rabbitmq {
                         delivery
                             .ack(BasicAckOptions::default())
                             .await
-                            .expect("error on ack");
+                            .expect("error on ack delivery");
                     }
 
                     batching.clear();
