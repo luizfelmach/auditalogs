@@ -1,22 +1,14 @@
-use elastic::Elastic;
-use rabbitmq::Rabbitmq;
-use std::error::Error;
+use blockchain::BlockchainStore;
+use fingerprint::Fingerprint;
+use queue::Queue;
 use tracing::{error, warn, Level};
 use tracing_subscriber;
 
-mod elastic;
-mod ethereum;
-mod hashing;
-mod rabbitmq;
-
-const ELASTIC_URL: &str = "http://localhost:9200";
-const ELASTIC_USER: &str = "elastic";
-const ELASTIC_PASSWORD: &str = "changeme";
-const RABBIT_URL: &str = "amqp://rabbit:changeme@localhost:5672";
-const RABBIT_QUEUE: &str = "queue";
-const RABBIT_BATCH: usize = 100;
-const RPC_URL: &str = "http://localhost:8545";
-const RPC_CONTRACT: &str = "5fbdb2315678afecb367f032d93f642f64180aa3";
+mod blockchain;
+mod core;
+mod fingerprint;
+mod queue;
+mod storage;
 
 #[tokio::main]
 async fn main() {
@@ -33,24 +25,16 @@ async fn main() {
     }
 }
 
-async fn app() -> Result<(), Box<dyn Error>> {
-    let elastic = Elastic::new(ELASTIC_URL, ELASTIC_USER, ELASTIC_PASSWORD)?;
-    let mut rabbit = Rabbitmq::new(RABBIT_URL, RABBIT_QUEUE, RABBIT_BATCH).await?;
-    let _contract = ethereum::contract(RPC_URL, RPC_CONTRACT)?;
+async fn app() -> Result<(), Box<dyn std::error::Error>> {
+    let queue_client = queue::rust_client::RustClient::default();
+    let mut blockchain_client = blockchain::blockchain_file_client::BlockchainFileClient::default();
 
-    rabbit
-        .consumer(|messages: Vec<Vec<u8>>| {
-            let hash = hashing::fingerprint(&messages);
-
-            let result = elastic.store_data(&hash, &messages);
-
-            if let Err(error) = result {
-                return Err(error);
-            }
-
+    queue_client
+        .on_message(|data| {
+            let _fp = data.fingerprint();
             Ok(())
         })
-        .await;
+        .await?;
 
     Ok(())
 }
