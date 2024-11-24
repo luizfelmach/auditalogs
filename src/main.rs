@@ -3,8 +3,6 @@ use fingerprint::Fingerprint;
 use futures::StreamExt;
 use queue::RustQueue;
 use storage::{FsStorage, StorageStore};
-use tracing::{error, warn, Level};
-use tracing_subscriber;
 
 mod blockchain;
 mod core;
@@ -14,16 +12,11 @@ mod storage;
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
-
     loop {
         match app().await {
             Ok(_) => break,
-            Err(err) => error!("Something went wrong: {err}"),
+            Err(err) => println!("Something went wrong: {err}"),
         }
-
-        warn!("Retrying in 2 seconds...");
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     }
 }
 
