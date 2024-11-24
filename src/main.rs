@@ -1,4 +1,3 @@
-use alloy::primitives::address;
 use elastic::Elastic;
 use rabbitmq::Rabbitmq;
 use std::error::Error;
@@ -17,31 +16,27 @@ const RABBIT_URL: &str = "amqp://rabbit:changeme@localhost:5672";
 const RABBIT_QUEUE: &str = "queue";
 const RABBIT_BATCH: usize = 100;
 const RPC_URL: &str = "http://localhost:8545";
+const RPC_CONTRACT: &str = "5fbdb2315678afecb367f032d93f642f64180aa3";
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     loop {
-        match listen().await {
+        match app().await {
             Ok(_) => break,
-            Err(err) => {
-                error!("Something went wrong: {err}");
-            }
+            Err(err) => error!("Something went wrong: {err}"),
         }
-        let seconds = 2;
-        warn!("Retrying in {seconds} seconds...");
-        tokio::time::sleep(tokio::time::Duration::from_secs(seconds)).await;
+
+        warn!("Retrying in 2 seconds...");
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     }
 }
 
-async fn listen() -> Result<(), Box<dyn Error>> {
+async fn app() -> Result<(), Box<dyn Error>> {
     let elastic = Elastic::new(ELASTIC_URL, ELASTIC_USER, ELASTIC_PASSWORD)?;
     let mut rabbit = Rabbitmq::new(RABBIT_URL, RABBIT_QUEUE, RABBIT_BATCH).await?;
-    let _contract = ethereum::Contract(
-        RPC_URL,
-        address!("5fbdb2315678afecb367f032d93f642f64180aa3"),
-    )?;
+    let _contract = ethereum::contract(RPC_URL, RPC_CONTRACT)?;
 
     rabbit
         .consumer(|messages: Vec<Vec<u8>>| {

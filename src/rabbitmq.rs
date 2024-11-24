@@ -1,7 +1,7 @@
 use futures_lite::StreamExt;
 use lapin::{
     message::Delivery,
-    options::{BasicAckOptions, BasicConsumeOptions, BasicNackOptions},
+    options::{BasicAckOptions, BasicConsumeOptions},
     types::FieldTable,
     Connection, ConnectionProperties, Consumer, Result as LapinResult,
 };
