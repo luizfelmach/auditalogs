@@ -1,15 +1,4 @@
-use super::Queue;
-
-pub struct RabbitmqClient {}
-
-impl Queue for RabbitmqClient {
-    async fn on_message<F>(&self, callback: F) -> Result<(), Box<dyn std::error::Error>>
-    where
-        F: Fn(crate::core::Data) -> Result<(), Box<dyn std::error::Error>>,
-    {
-        Ok(())
-    }
-}
+pub struct RabbitmqQueue {}
 
 // use futures_lite::StreamExt;
 // use lapin::{

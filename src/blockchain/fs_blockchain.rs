@@ -3,11 +3,11 @@ use std::io::Write;
 
 use super::BlockchainStore;
 
-pub struct BlockchainFileClient {
+pub struct FsBlockchain {
     file: File,
 }
 
-impl Default for BlockchainFileClient {
+impl Default for FsBlockchain {
     fn default() -> Self {
         let path = "blockchain.txt";
         let file = OpenOptions::new()
@@ -16,17 +16,17 @@ impl Default for BlockchainFileClient {
             .open(path)
             .unwrap();
 
-        BlockchainFileClient { file }
+        FsBlockchain { file }
     }
 }
 
-impl BlockchainStore for BlockchainFileClient {
+impl BlockchainStore for FsBlockchain {
     async fn store(
         &mut self,
-        id: String,
-        fingerprint: String,
+        id: &String,
+        fingerprint: &String,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        writeln!(self.file, "{id} {fingerprint}");
+        writeln!(self.file, "{id} {fingerprint}")?;
         Ok(())
     }
 }

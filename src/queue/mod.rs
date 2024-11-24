@@ -1,10 +1,5 @@
-use crate::core::Data;
+mod rabbitmq_queue;
+mod rust_queue;
 
-pub mod rabbitmq_client;
-pub mod rust_client;
-
-pub trait Queue {
-    async fn on_message<F>(&self, callback: F) -> Result<(), Box<dyn std::error::Error>>
-    where
-        F: Fn(Data) -> Result<(), Box<dyn std::error::Error>>;
-}
+pub use rabbitmq_queue::RabbitmqQueue;
+pub use rust_queue::RustQueue;

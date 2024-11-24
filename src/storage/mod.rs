@@ -1,6 +1,12 @@
-use crate::core::Data;
-pub mod elastic_client;
+mod elastic_client;
+mod fs_storage;
+
+pub use fs_storage::FsStorage;
 
 pub trait StorageStore {
-    async fn store(&self, id: String, data: Data) -> Result<(), Box<dyn std::error::Error>>;
+    async fn store(
+        &mut self,
+        id: &String,
+        data: &crate::core::Data,
+    ) -> Result<(), Box<dyn std::error::Error>>;
 }

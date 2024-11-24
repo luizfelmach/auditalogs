@@ -5,8 +5,8 @@ pub struct EthereumClient {}
 impl BlockchainStore for EthereumClient {
     async fn store(
         &mut self,
-        _id: String,
-        _fingerprint: String,
+        _id: &String,
+        _fingerprint: &String,
     ) -> Result<(), Box<dyn std::error::Error>> {
         unimplemented!()
     }

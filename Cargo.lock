@@ -1064,8 +1064,9 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "elasticsearch",
- "futures-lite 2.5.0",
+ "futures",
  "lapin",
+ "rand",
  "serde",
  "serde_json",
  "sha2",

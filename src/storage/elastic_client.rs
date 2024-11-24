@@ -4,7 +4,11 @@ use crate::core::Data;
 pub struct ElastiClient {}
 
 impl StorageStore for ElastiClient {
-    async fn store(&self, _id: String, _data: Data) -> Result<(), Box<dyn std::error::Error>> {
+    async fn store(
+        &mut self,
+        _id: &String,
+        _data: &Data,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         unimplemented!()
     }
 }

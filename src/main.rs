@@ -1,6 +1,8 @@
-use blockchain::BlockchainStore;
+use blockchain::{BlockchainStore, FsBlockchain};
 use fingerprint::Fingerprint;
-use queue::Queue;
+use futures::StreamExt;
+use queue::RustQueue;
+use storage::{FsStorage, StorageStore};
 use tracing::{error, warn, Level};
 use tracing_subscriber;
 
@@ -26,15 +28,16 @@ async fn main() {
 }
 
 async fn app() -> Result<(), Box<dyn std::error::Error>> {
-    let queue_client = queue::rust_client::RustClient::default();
-    let mut blockchain_client = blockchain::blockchain_file_client::BlockchainFileClient::default();
+    let mut queue = RustQueue::default();
+    let mut blockchain = FsBlockchain::default();
+    let mut storage = FsStorage::default();
 
-    queue_client
-        .on_message(|data| {
-            let _fp = data.fingerprint();
-            Ok(())
-        })
-        .await?;
+    while let Some(data) = queue.next().await {
+        let id = String::from("SOME_ID");
+        let fingerprint = data.fingerprint();
+        blockchain.store(&id, &fingerprint).await?;
+        storage.store(&id, &data).await?;
+    }
 
     Ok(())
 }
