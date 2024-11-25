@@ -12,11 +12,8 @@ mod storage;
 
 #[tokio::main]
 async fn main() {
-    loop {
-        match app().await {
-            Ok(_) => break,
-            Err(err) => println!("Something went wrong: {err}"),
-        }
+    if let Err(err) = app().await {
+        eprintln!("Something went wrong: {err}")
     }
 }
 
