@@ -24,7 +24,7 @@ impl StorageStore for FsStorage {
     async fn store(
         &mut self,
         id: &String,
-        data: &crate::core::Data,
+        data: &Vec<Vec<u8>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         writeln!(self.file, "ID: {id}")?;
         for i in data {

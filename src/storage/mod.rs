@@ -7,6 +7,6 @@ pub trait StorageStore {
     async fn store(
         &mut self,
         id: &String,
-        data: &crate::core::Data,
+        data: &Vec<Vec<u8>>,
     ) -> Result<(), Box<dyn std::error::Error>>;
 }

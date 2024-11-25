@@ -1,80 +1,88 @@
-pub struct RabbitmqQueue {}
+use super::{Acker, Message};
+use futures::executor::block_on;
+use futures::task::Poll;
+use futures::Stream;
+use lapin::message::Delivery;
+use lapin::options::{BasicAckOptions, BasicConsumeOptions};
+use lapin::types::FieldTable;
+use lapin::{Connection, ConnectionProperties, Consumer};
+use std::error::Error;
 
-// use futures_lite::StreamExt;
-// use lapin::{
-//     message::Delivery,
-//     options::{BasicAckOptions, BasicConsumeOptions},
-//     types::FieldTable,
-//     Connection, ConnectionProperties, Consumer, Result as LapinResult,
-// };
-// use std::error::Error;
-// use tracing::{event, info, warn, Level};
+pub struct RabbitmqQueue {
+    uri: String,
+    queue: String,
+    consumer_tag: String,
+    consumer: Option<Consumer>,
+}
 
-// #[derive(Debug)]
-// pub struct Rabbitmq {
-//     consumer: Consumer,
-//     batch: usize,
-// }
+impl Default for RabbitmqQueue {
+    fn default() -> Self {
+        RabbitmqQueue {
+            uri: "amqp://rabbit:changeme@localhost:5672".into(),
+            consumer_tag: "consumer".into(),
+            queue: "queue".into(),
+            consumer: None,
+        }
+    }
+}
 
-// impl Rabbitmq {
-//     pub async fn new(uri: &str, queue: &str, batch: usize) -> LapinResult<Self> {
-//         let connection = Connection::connect(uri, ConnectionProperties::default()).await?;
-//         let channel = connection.create_channel().await?;
-//         let consumer = channel
-//             .basic_consume(
-//                 queue,
-//                 "consumer",
-//                 BasicConsumeOptions::default(),
-//                 FieldTable::default(),
-//             )
-//             .await?;
+impl RabbitmqQueue {
+    pub async fn connect(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let connection = Connection::connect(&self.uri, ConnectionProperties::default()).await?;
+        let channel = connection.create_channel().await?;
+        let consumer = channel
+            .basic_consume(
+                &self.queue,
+                &self.consumer_tag,
+                BasicConsumeOptions::default(),
+                FieldTable::default(),
+            )
+            .await?;
+        self.consumer = Some(consumer);
+        Ok(())
+    }
+}
 
-//         info!("Connected to RabbitMQ at {uri}. The message exchange has begun!");
-//         Ok(Rabbitmq { consumer, batch })
-//     }
+impl Acker for Delivery {
+    fn queue_ack(&self) -> Result<(), Box<dyn Error>> {
+        let result: Result<(), Box<dyn Error>> = block_on(async {
+            self.ack(BasicAckOptions::default()).await?;
+            Ok(())
+        });
 
-//     pub async fn consumer<F>(&mut self, processor: F)
-//     where
-//         F: Fn(Vec<Vec<u8>>) -> Result<(), Box<dyn Error>>,
-//     {
-//         let mut batching: Vec<Delivery> = Vec::new();
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
+    }
+}
 
-//         info!("Waiting for messages in the queue. Ready to process!");
+impl Stream for RabbitmqQueue {
+    type Item = Result<Message, Box<dyn Error>>;
+    fn poll_next(
+        self: std::pin::Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<Self::Item>> {
+        let this = self.get_mut();
 
-//         while let Some(delivery) = self.consumer.next().await {
-//             if let Ok(delivery) = delivery {
-//                 batching.push(delivery);
+        let consumer = match &mut this.consumer {
+            Some(consumer) => consumer,
+            None => panic!("Unexpected error"),
+        };
 
-//                 if batching.len() >= self.batch {
-//                     event!(
-//                         Level::INFO,
-//                         "Received {} messages in the queue. Ready to process.",
-//                         batching.len()
-//                     );
+        let item = futures::ready!(std::pin::Pin::new(consumer).poll_next(cx));
 
-//                     let mut messages = Vec::new();
+        let item = match item {
+            Some(Ok(delivery)) => delivery,
+            Some(Err(err)) => return Poll::Ready(Some(Err(Box::new(err)))),
+            None => panic!("Unexpected error"),
+        };
 
-//                     for delivery in &batching {
-//                         messages.push(delivery.data.clone());
-//                     }
+        let message = Message {
+            data: item.data.clone(),
+            acker: Box::new(item),
+        };
 
-//                     if let Err(error) = processor(messages) {
-//                         warn!("Failed to process messages: {error}");
-//                         warn!("Returning them to the queue for retry.");
-//                         batching.clear();
-//                         continue;
-//                     }
-
-//                     for delivery in &batching {
-//                         delivery
-//                             .ack(BasicAckOptions::default())
-//                             .await
-//                             .expect("error on ack delivery");
-//                     }
-
-//                     batching.clear();
-//                 }
-//             }
-//         }
-//     }
-// }
+        Poll::Ready(Some(Ok(message)))
+    }
+}

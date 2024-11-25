@@ -1,5 +1,4 @@
 use super::StorageStore;
-use crate::core::Data;
 
 pub struct ElastiClient {}
 
@@ -7,7 +6,7 @@ impl StorageStore for ElastiClient {
     async fn store(
         &mut self,
         _id: &String,
-        _data: &Data,
+        _data: &Vec<Vec<u8>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         unimplemented!()
     }

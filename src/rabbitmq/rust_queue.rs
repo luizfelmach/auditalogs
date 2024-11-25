@@ -1,4 +1,4 @@
-use super::{Acker, Message};
+use crate::core::Data;
 use core::time;
 use futures::{task::Poll, Stream};
 use rand::random;
@@ -16,21 +16,15 @@ impl Default for RustQueue {
     }
 }
 
-impl Acker for () {}
-
 impl Stream for RustQueue {
-    type Item = Message;
+    type Item = Data;
 
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
         _cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
         thread::sleep(time::Duration::from_millis(300));
-        let item = Message {
-            data: faker_log(),
-            acker: Box::new(()),
-        };
-        Poll::Ready(Some(item))
+        Poll::Ready(Some(vec![faker_log(); 10]))
     }
 }
 
