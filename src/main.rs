@@ -20,7 +20,7 @@ use sha2::{Digest, Sha256};
 
 const REDIS_URL: &str = "redis://127.0.0.1";
 const REDIS_KEY: &str = "logs";
-const BATCH_SIZE: usize = 2;
+const BATCH_SIZE: usize = 1000;
 
 const ELASTIC_URL: &str = "http://localhost:9200";
 const ELASTIC_USERNAME: &str = "elastic";
