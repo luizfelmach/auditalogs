@@ -1,5 +1,5 @@
 [package]
-name = "auditalogs"
+name = "audita-worker"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,7 +7,6 @@ edition = "2021"
 redis = "0.29.0"
 sha2 = "0.10.8"
 tokio = { version = "1", features = ["full"] }
-lapin = "2.5.0"
 serde = "1.0.215"
 serde_json = "1.0.133"
 elasticsearch = "8.16.0-alpha.1"
