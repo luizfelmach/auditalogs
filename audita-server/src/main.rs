@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use alloy::{hex, sol};
 use alloy::{primitives::B256, providers::ProviderBuilder};
