@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use alloy::{hex, sol};
 use alloy::{primitives::B256, providers::ProviderBuilder};
@@ -20,13 +22,17 @@ const RPC_URL: &str = "http://localhost:8545";
 const RPC_CONTRACT: &str = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 #[get("/search")]
-async fn search(es_client: web::Data<Elasticsearch>) -> impl Responder {
+async fn search(
+    es_client: web::Data<Elasticsearch>,
+    body: web::Json<serde_json::Value>,
+) -> impl Responder {
+    let query = body.into_inner();
+
     let response = es_client
-        .search(SearchParts::Index(&["*"])) // Busca em todos os índices
+        .search(SearchParts::Index(&["*"]))
         .body(json!({
-            "query": {
-                "match_all": {}
-            }
+            "query": query,
+            "size": 10000
         }))
         .send()
         .await;
@@ -34,9 +40,9 @@ async fn search(es_client: web::Data<Elasticsearch>) -> impl Responder {
     match response {
         Ok(resp) => match resp.json::<serde_json::Value>().await {
             Ok(json) => {
-                let aux = vec![];
-                let hits = json["hits"]["hits"].as_array().unwrap_or(&aux);
-                let formatted_results: Vec<_> = hits
+                let hits = json["hits"]["hits"]
+                    .as_array()
+                    .unwrap_or(&vec![])
                     .iter()
                     .map(|doc| {
                         json!({
@@ -45,8 +51,9 @@ async fn search(es_client: web::Data<Elasticsearch>) -> impl Responder {
                             "source": doc["_source"]
                         })
                     })
-                    .collect();
-                HttpResponse::Ok().json(formatted_results)
+                    .collect::<Vec<_>>();
+
+                HttpResponse::Ok().json(hits)
             }
             Err(_) => HttpResponse::InternalServerError().body("Erro ao processar resposta"),
         },
@@ -74,7 +81,6 @@ async fn proof(es_client: web::Data<Elasticsearch>, index: web::Path<String>) ->
                 let mut accumulated_hash = String::new();
 
                 for doc in hits {
-                    println!("ID:{} {}", doc["_id"], doc["_source"].to_string());
                     let mut hasher = Sha256::new();
                     hasher.update(accumulated_hash.as_bytes());
                     hasher.update(doc["_source"].to_string().as_bytes());
