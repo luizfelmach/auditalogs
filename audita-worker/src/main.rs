@@ -1,4 +1,4 @@
-use std::{sync::Arc, thread};
+use std::{collections::HashMap, string, sync::Arc, thread};
 
 use alloy::{
     hex,
@@ -14,7 +14,7 @@ use elasticsearch::{
         transport::{SingleNodeConnectionPool, TransportBuilder},
         Url,
     },
-    BulkParts, Elasticsearch,
+    BulkOperation, BulkParts, Elasticsearch,
 };
 use futures::lock::Mutex;
 use rand::{seq::index, Rng};
@@ -48,6 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut accumulated_hash = String::new();
             loop {
                 let msg: Option<(String, String)> = redis.brpop(REDIS_KEY, 0.0).unwrap();
+
                 if let Some((_, value)) = msg {
                     let mut hasher = Sha256::new();
                     hasher.update(accumulated_hash.as_bytes());
@@ -85,47 +86,11 @@ async fn process_messages(
     let transport = TransportBuilder::new(pool).auth(credentials).build()?;
     let elastic = Elasticsearch::new(transport);
 
-    let mut bulk_operations: Vec<JsonBody<Value>> = Vec::new();
-    for (i, d) in messages.iter().enumerate() {
-        bulk_operations.push(
-            json!({
-                "index": {"_index": index_name, "_id": i},
-            })
-            .into(),
-        );
-        let json: Value = serde_json::json!({
-            "message": d
-        });
-        bulk_operations.push(json.into());
-    }
+    send_to_elasticsearch(messages, &index_name, &elastic)
+        .await
+        .unwrap();
 
-    let res = elastic
-        .bulk(BulkParts::Index(&index_name))
-        .body(bulk_operations)
-        .send()
-        .await;
-
-    match res {
-        Ok(res) => {
-            if res.status_code().is_success() {
-                println!(
-                    "Mensagem indexada com sucesso para o índice: {}",
-                    index_name
-                );
-            } else {
-                eprintln!("Erro ao indexar a mensagem. Status: {}", res.status_code());
-                if let Ok(body) = res.json::<serde_json::Value>().await {
-                    eprintln!("Detalhes do erro: {:?}", body);
-                }
-            }
-        }
-        Err(e) => {
-            eprintln!(
-                "Erro ao tentar enviar a requisição para o Elasticsearch: {}",
-                e
-            );
-        }
-    }
+    println!("{} -- {}", index_name, hash);
 
     let provider = ProviderBuilder::new().on_http(RPC_URL.parse()?);
 
@@ -148,6 +113,32 @@ fn generate_index_name() -> String {
         .map(char::from)
         .collect();
     format!("{}-{}-{}", WORKER_NAME, current_time, random_string).to_lowercase()
+}
+
+async fn send_to_elasticsearch(
+    messages: Vec<String>,
+    index_name: &str,
+    elastic: &Elasticsearch,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut ops: Vec<BulkOperation<Value>> = Vec::new();
+
+    for (i, d) in messages.iter().enumerate() {
+        let json = serde_json::from_str(&d)?;
+        ops.push(BulkOperation::create(json).id(i.to_string()).into());
+    }
+
+    let response = elastic
+        .bulk(BulkParts::Index(&index_name))
+        .body(ops)
+        .send()
+        .await?;
+
+    if !response.status_code().is_success() {
+        let error_body: Value = response.json().await?;
+        eprintln!("Bulk request failed: {:?}", error_body);
+    }
+
+    Ok(())
 }
 
 sol! {
