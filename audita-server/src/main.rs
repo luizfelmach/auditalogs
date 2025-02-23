@@ -1,4 +1,5 @@
-use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use actix_cors::Cors;
+use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder};
 use alloy::{hex, sol};
 use alloy::{primitives::B256, providers::ProviderBuilder};
 use elasticsearch::{
@@ -19,7 +20,7 @@ const ELASTIC_PASSWORD: &str = "changeme";
 const RPC_URL: &str = "http://localhost:8545";
 const RPC_CONTRACT: &str = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
-#[get("/search")]
+#[post("/search")]
 async fn search(
     es_client: web::Data<Elasticsearch>,
     body: web::Json<serde_json::Value>,
@@ -61,6 +62,7 @@ async fn search(
 
 #[get("/proof/{index}")]
 async fn proof(es_client: web::Data<Elasticsearch>, index: web::Path<String>) -> impl Responder {
+    println!("'{}'", index);
     let response = es_client
         .search(SearchParts::Index(&[index.as_str()]))
         .body(json!({
@@ -122,6 +124,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(es_client.clone()))
+            .wrap(Cors::permissive())
             .service(search)
             .service(proof)
     })
