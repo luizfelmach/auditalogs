@@ -128,7 +128,7 @@ async fn main() -> std::io::Result<()> {
             .service(search)
             .service(proof)
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind(("127.0.0.1", 8081))?
     .run()
     .await
 }

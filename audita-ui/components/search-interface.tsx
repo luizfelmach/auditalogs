@@ -18,7 +18,7 @@ type Document = {
 };
 
 const searchFetch = async (searchQuery: string): Promise<Document[]> => {
-  const response = await axios.post(`http://localhost:8080/search`, {
+  const response = await axios.post(`http://localhost:8081/search`, {
     match: {
       ip: searchQuery,
     },
@@ -61,7 +61,7 @@ export function SearchInterface() {
           onCheckIntegrity={async (index) => {
             try {
               const response = await axios.get(
-                `http://localhost:8080/proof/${index}`
+                `http://localhost:8081/proof/${index}`
               );
               if (response.data.blockchain_match) {
                 toast.success(
