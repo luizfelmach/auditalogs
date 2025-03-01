@@ -12,14 +12,14 @@ use elasticsearch::{
 use rand::Rng;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
-use std::error::Error;
 use std::sync::Arc;
+use std::{env, error::Error};
 use tokio::sync::mpsc;
 
 const WORKER_NAME: &str = "firewall";
-const BATCH_SIZE: usize = 5000;
+const BATCH_SIZE: usize = 100_000;
 const THREADS_WORKERS: usize = 3;
-const THREADS_DISPATCHERS: usize = 10;
+const THREADS_DISPATCHERS: usize = 3;
 
 const ELASTIC_URL: &str = "http://localhost:9200";
 const ELASTIC_USERNAME: &str = "elastic";
@@ -40,14 +40,29 @@ async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl 
     HttpResponse::Ok().body("Data received and being processed.")
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() -> std::io::Result<()> {
+    let threads_workers = env::var("THREADS_WORKERS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(THREADS_WORKERS);
+
+    let threads_dispatchers = env::var("THREADS_DISPATCHERS")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(THREADS_DISPATCHERS);
+
+    let batch_size = env::var("BATCH_SIZE")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(BATCH_SIZE);
+
     let (sender, receiver) = mpsc::channel(1_000_000);
     let receiver = Arc::new(tokio::sync::Mutex::new(receiver));
 
     let app = web::Data::new(Arc::new(AppState { sender }));
 
-    for i in 0..THREADS_WORKERS {
+    for i in 0..threads_workers {
         let receiver = Arc::clone(&receiver);
         tokio::spawn(async move {
             let mut buffer = Vec::new();
@@ -57,7 +72,7 @@ async fn main() -> std::io::Result<()> {
             while let Some(msg) = receiver.lock().await.recv().await {
                 buffer.push(msg);
 
-                if buffer.len() >= BATCH_SIZE {
+                if buffer.len() >= batch_size {
                     println!(
                         "Worker {} processing batch of {} messages.",
                         i,
@@ -74,11 +89,11 @@ async fn main() -> std::io::Result<()> {
 
     println!(
         "Starting HTTP server on 127.0.0.1:8080 with {} dispatchers.",
-        THREADS_DISPATCHERS
+        threads_dispatchers
     );
 
     HttpServer::new(move || App::new().app_data(app.clone()).service(receive))
-        .workers(THREADS_DISPATCHERS)
+        .workers(threads_dispatchers)
         .bind("127.0.0.1:8080")?
         .run()
         .await
