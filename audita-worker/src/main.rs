@@ -17,9 +17,9 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 
 const WORKER_NAME: &str = "firewall";
-const BATCH_SIZE: usize = 5;
-const THREADS_WORKERS: usize = 1;
-const THREADS_DISPATCHERS: usize = 2;
+const BATCH_SIZE: usize = 5000;
+const THREADS_WORKERS: usize = 3;
+const THREADS_DISPATCHERS: usize = 10;
 
 const ELASTIC_URL: &str = "http://localhost:9200";
 const ELASTIC_USERNAME: &str = "elastic";
@@ -42,7 +42,7 @@ async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl 
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    let (sender, receiver) = mpsc::channel(1024);
+    let (sender, receiver) = mpsc::channel(1_000_000);
     let receiver = Arc::new(tokio::sync::Mutex::new(receiver));
 
     let app = web::Data::new(Arc::new(AppState { sender }));
