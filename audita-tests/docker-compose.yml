@@ -6,7 +6,7 @@ services:
     environment:
       - INFLUXDB_DB=k6
     networks:
-      - influx_grafana
+      - testing
 
   grafana:
     image: grafana/grafana:latest
@@ -20,7 +20,7 @@ services:
       - GF_RENDERING_SERVER_URL=http://renderer:8081/render
       - GF_RENDERING_CALLBACK_URL=http://grafana:3000/
     networks:
-      - influx_grafana
+      - testing
 
   renderer:
     image: grafana/grafana-image-renderer:latest
@@ -29,14 +29,7 @@ services:
     environment:
       - ENABLE_METRICS=true
     networks:
-      - influx_grafana
-
-  briefer:
-    image: briefercloud/briefer
-    ports:
-      - 3010:3000
-    networks:
-      - influx_grafana
+      - testing
 
 networks:
-  influx_grafana:
+  testing:

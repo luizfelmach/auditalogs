@@ -5,10 +5,7 @@ THREADS_DISPATCHERS=(4)
 BATCH_SIZE=(100 100000)
 
 SERVER_CMD="audita-worker"
-
 K6_SCRIPT="k6.js"
-
-SERVER_START_DELAY=3
 
 echo "metric_name,timestamp,metric_value,check,error,error_code,expected_response,group,method,name,proto,scenario,service,status,subproto,tls_version,url,extra_tags,metadata" > result.csv
 
@@ -30,7 +27,7 @@ for workers in "${THREADS_WORKERS[@]}"; do
 
       SERVER_PID=$!
 
-      sleep $SERVER_START_DELAY
+      sleep 3
 
       k6 run $K6_SCRIPT \
         --out csv=tmp.csv \
