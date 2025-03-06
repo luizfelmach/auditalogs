@@ -1,12 +1,13 @@
+import { sleep } from 'k6';
 import http from 'k6/http';
 
  export const options = {
-   duration: "10s",
-   vus: 5
+   duration: "1m",
+   vus: 10
  };
 
 export default function () {
-  const url = 'http://localhost:8080';
+  const url = 'http://127.0.0.1:8080';
 
   const payload = JSON.stringify({
     ip: "mock",
@@ -21,4 +22,5 @@ export default function () {
   };
 
   http.post(url, payload, params);
+  // sleep(0.1)
 }

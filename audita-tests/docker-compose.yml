@@ -5,6 +5,7 @@ services:
       - "8086:8086"
     environment:
       - INFLUXDB_DB=k6
+      - INFLUXDB_HTTP_MAX_BODY_SIZE=50000000000
     networks:
       - testing
 
