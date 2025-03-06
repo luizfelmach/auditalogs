@@ -20,6 +20,7 @@ const WORKER_NAME: &str = "firewall";
 const BATCH_SIZE: usize = 100_000;
 const THREADS_WORKERS: usize = 3;
 const THREADS_DISPATCHERS: usize = 3;
+const QUEUE_SIZE: usize = 128;
 
 const ELASTIC_URL: &str = "http://localhost:9200";
 const ELASTIC_USERNAME: &str = "elastic";
@@ -57,7 +58,12 @@ async fn main() -> std::io::Result<()> {
         .and_then(|v| v.parse::<usize>().ok())
         .unwrap_or(BATCH_SIZE);
 
-    let (sender, receiver) = mpsc::channel(1_000_000);
+    let queue_size = env::var("QUEUE_SIZE")
+        .ok()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(QUEUE_SIZE);
+
+    let (sender, receiver) = mpsc::channel(queue_size);
     let receiver = Arc::new(tokio::sync::Mutex::new(receiver));
 
     let app = web::Data::new(Arc::new(AppState { sender }));
@@ -78,7 +84,10 @@ async fn main() -> std::io::Result<()> {
                         i,
                         buffer.len()
                     );
-                    proccess(&mut buffer).await;
+                    let mut data = buffer.clone();
+                    tokio::spawn(async move {
+                        proccess(&mut data).await;
+                    });
                     buffer.clear();
                 }
             }
