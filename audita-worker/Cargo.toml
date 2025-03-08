@@ -15,3 +15,4 @@ rand = "0.8.5"
 chrono = "0.4"
 thiserror = "2.0.12"
 clap = { version = "4.5.31", features = ["derive"] }
+toml = "0.8.20"

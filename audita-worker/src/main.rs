@@ -1,3 +1,5 @@
+mod cli;
+mod config;
 mod elastic_client;
 mod eth_client;
 mod utils;
@@ -10,44 +12,33 @@ use serde_json::Value;
 use std::{sync::Arc, time::Instant};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 
-const ELASTIC_URL: &str = "http://localhost:9200";
-const ELASTIC_USERNAME: &str = "elastic";
-const ELASTIC_PASSWORD: &str = "changeme";
-
-const RPC_URL: &str = "http://localhost:8545";
-const RPC_CONTRACT: &str = "0x42699A7612A82f1d9C36148af9C77354759b210b";
-const RPC_PK: &str = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63";
-
 #[tokio::main(flavor = "multi_thread", worker_threads = 16)]
 async fn main() -> std::io::Result<()> {
-    let args = Args::parse();
+    let args = cli::Args::parse();
+    let config = config::parse(args.config);
+    println!("{}", config);
 
-    let (sender_worker, receiver_worker) = mpsc::channel(args.queue_worker);
-    let (sender_elastic, receiver_elastic) = mpsc::channel(args.queue_elastic);
-    let (sender_ethereum, receiver_ethreum) = mpsc::channel(args.queue_ethereum);
+    let (sender_worker, receiver_worker) = mpsc::channel(config.queue_worker);
+    let (sender_elastic, receiver_elastic) = mpsc::channel(config.queue_elastic);
+    let (sender_ethereum, receiver_ethereum) = mpsc::channel(config.queue_ethereum);
 
     tokio::spawn(async move {
         thread_worker(receiver_worker, sender_ethereum, sender_elastic).await;
     });
     tokio::spawn(async move {
-        thread_sender_ethereum(receiver_ethreum).await;
+        thread_sender_ethereum(receiver_ethereum).await;
     });
     tokio::spawn(async move {
         thread_sender_elastic(receiver_elastic).await;
     });
-
-    println!(
-        "Starting server on :{} with {} dispatchers.",
-        args.port, args.dispatchers
-    );
 
     let app = web::Data::new(Arc::new(AppState {
         sender: sender_worker,
     }));
 
     HttpServer::new(move || App::new().app_data(app.clone()).service(receive))
-        .workers(args.dispatchers)
-        .bind(("127.0.0.1", args.port))?
+        .workers(config.dispatchers)
+        .bind(("127.0.0.1", config.port))?
         .run()
         .await
 }
@@ -63,12 +54,13 @@ struct BatchLogsQueueItem {
 }
 
 async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
-    let args = Args::parse();
+    let args = cli::Args::parse();
+    let config = config::parse(args.config);
 
     let elastic_client = ElasticClient::new(
-        ELASTIC_URL.into(),
-        ELASTIC_USERNAME.into(),
-        ELASTIC_PASSWORD.into(),
+        config.elastic.url,
+        config.elastic.username,
+        config.elastic.password,
     )
     .unwrap();
 
@@ -88,11 +80,16 @@ async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
 }
 
 async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
-    let args = Args::parse();
+    let args = cli::Args::parse();
+    let config = config::parse(args.config);
 
-    let eth_client = EthClient::new(RPC_URL.into(), RPC_CONTRACT.into(), RPC_PK.into())
-        .await
-        .unwrap();
+    let eth_client = EthClient::new(
+        config.ethereum.url,
+        config.ethereum.contract,
+        config.ethereum.primary_key,
+    )
+    .await
+    .unwrap();
 
     while let Some(msg) = receiver.recv().await {
         if !args.disable_ethereum {
@@ -114,15 +111,16 @@ async fn thread_worker(
     sender_blockchain: Sender<HashQueueItem>,
     sender_elastic: Sender<BatchLogsQueueItem>,
 ) {
-    let args = Args::parse();
+    let args = cli::Args::parse();
+    let config = config::parse(args.config);
 
     let mut buffer = Vec::new();
 
     while let Some(msg) = receiver.recv().await {
         buffer.push(msg);
 
-        if buffer.len() >= args.batch {
-            let index = utils::generate_index(&args.name);
+        if buffer.len() >= config.batch {
+            let index = utils::generate_index(&config.name);
             let hash = utils::fingerprint(&buffer);
 
             let item = HashQueueItem {
@@ -158,39 +156,4 @@ async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl 
         return HttpResponse::InternalServerError().body("Failed to enqueue message.");
     }
     HttpResponse::Ok().body("Data received and being processed.")
-}
-
-#[derive(Parser, Debug)]
-#[command(name = "audita-worker")]
-#[command(version, about, long_about = None)]
-struct Args {
-    #[arg(short, long, default_value = "worker")]
-    name: String,
-
-    #[arg(short, long, default_value_t = 8080)]
-    port: u16,
-
-    #[arg(short, long, default_value_t = 10000)]
-    batch: usize,
-
-    #[arg(short, long, default_value_t = 8192)]
-    queue_worker: usize,
-
-    #[arg(long, default_value_t = 128)]
-    queue_ethereum: usize,
-
-    #[arg(long, default_value_t = 128)]
-    queue_elastic: usize,
-
-    #[arg(short, long, default_value_t = 1)]
-    dispatchers: usize,
-
-    #[arg(long, default_value_t = false)]
-    disable_elastic: bool,
-
-    #[arg(long, default_value_t = false)]
-    disable_ethereum: bool,
-
-    #[arg(long, default_value = "./audita.toml")]
-    config: String,
 }

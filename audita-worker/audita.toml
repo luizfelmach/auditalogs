@@ -1,7 +1,15 @@
-[rpc]
-url = "http://localhost:8545"
+port = 8080
+name = "worker"
+batch = 10_000
+queue_worker = 1_000
+queue_ethereum = 100
+queue_elastic = 100
+dispatchers = 1
+
+[ethereum]
+url = "http://localhost:8546"
 contract = "0x5fbdb2315678afecb367f032d93f642f64180aa3"
-pk = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+primary_key = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 [elastic]
 url = "http://localhost:9200"
