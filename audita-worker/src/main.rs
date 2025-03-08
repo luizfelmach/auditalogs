@@ -1,33 +1,152 @@
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use alloy::{hex, primitives::B256, providers::ProviderBuilder, sol};
-use chrono::Utc;
-use elasticsearch::{
-    auth::Credentials,
-    http::{
-        transport::{SingleNodeConnectionPool, TransportBuilder},
-        Url,
-    },
-    BulkOperation, BulkParts, Elasticsearch,
-};
-use rand::Rng;
-use serde_json::Value;
-use sha2::{Digest, Sha256};
-use std::sync::Arc;
-use std::{env, error::Error};
-use tokio::sync::mpsc;
+mod elastic_client;
+mod eth_client;
+mod utils;
 
-const WORKER_NAME: &str = "firewall";
-const BATCH_SIZE: usize = 100_000;
-const THREADS_WORKERS: usize = 3;
-const THREADS_DISPATCHERS: usize = 3;
-const QUEUE_SIZE: usize = 128;
+use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
+use clap::Parser;
+use elastic_client::ElasticClient;
+use eth_client::EthClient;
+use serde_json::Value;
+use std::{sync::Arc, time::Instant};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 const ELASTIC_URL: &str = "http://localhost:9200";
 const ELASTIC_USERNAME: &str = "elastic";
 const ELASTIC_PASSWORD: &str = "changeme";
 
 const RPC_URL: &str = "http://localhost:8545";
-const RPC_CONTRACT: &str = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const RPC_CONTRACT: &str = "0x42699A7612A82f1d9C36148af9C77354759b210b";
+const RPC_PK: &str = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63";
+
+#[tokio::main(flavor = "multi_thread", worker_threads = 16)]
+async fn main() -> std::io::Result<()> {
+    let args = Args::parse();
+
+    let (sender_worker, receiver_worker) = mpsc::channel(args.queue_worker);
+    let (sender_elastic, receiver_elastic) = mpsc::channel(args.queue_elastic);
+    let (sender_ethereum, receiver_ethreum) = mpsc::channel(args.queue_ethereum);
+
+    tokio::spawn(async move {
+        thread_worker(receiver_worker, sender_ethereum, sender_elastic).await;
+    });
+    tokio::spawn(async move {
+        thread_sender_ethereum(receiver_ethreum).await;
+    });
+    tokio::spawn(async move {
+        thread_sender_elastic(receiver_elastic).await;
+    });
+
+    println!(
+        "Starting server on :{} with {} dispatchers.",
+        args.port, args.dispatchers
+    );
+
+    let app = web::Data::new(Arc::new(AppState {
+        sender: sender_worker,
+    }));
+
+    HttpServer::new(move || App::new().app_data(app.clone()).service(receive))
+        .workers(args.dispatchers)
+        .bind(("127.0.0.1", args.port))?
+        .run()
+        .await
+}
+
+struct HashQueueItem {
+    index: String,
+    hash: String,
+}
+
+struct BatchLogsQueueItem {
+    index: String,
+    content: Vec<Value>,
+}
+
+async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
+    let args = Args::parse();
+
+    let elastic_client = ElasticClient::new(
+        ELASTIC_URL.into(),
+        ELASTIC_USERNAME.into(),
+        ELASTIC_PASSWORD.into(),
+    )
+    .unwrap();
+
+    while let Some(msg) = receiver.recv().await {
+        if !args.disable_elastic {
+            let start_time = Instant::now();
+            let result = elastic_client.store(&msg.index, &msg.content).await;
+            match result {
+                Ok(_) => {
+                    let elapsed_time = start_time.elapsed();
+                    println!("[Sender Elastic]: {} {:?}", msg.index, elapsed_time)
+                }
+                Err(e) => eprintln!("[Sender Elastic] [Error]: {}", e),
+            }
+        }
+    }
+}
+
+async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
+    let args = Args::parse();
+
+    let eth_client = EthClient::new(RPC_URL.into(), RPC_CONTRACT.into(), RPC_PK.into())
+        .await
+        .unwrap();
+
+    while let Some(msg) = receiver.recv().await {
+        if !args.disable_ethereum {
+            let start_time = Instant::now();
+            let result = eth_client.store(&msg.index, &msg.hash).await;
+            match result {
+                Ok(_) => {
+                    let elapsed_time = start_time.elapsed();
+                    println!("[Sender Ethereum]: {} {:?}", msg.index, elapsed_time)
+                }
+                Err(e) => eprintln!("[Sender Ethereum] [Error]: {}", e),
+            }
+        }
+    }
+}
+
+async fn thread_worker(
+    mut receiver: Receiver<Value>,
+    sender_blockchain: Sender<HashQueueItem>,
+    sender_elastic: Sender<BatchLogsQueueItem>,
+) {
+    let args = Args::parse();
+
+    let mut buffer = Vec::new();
+
+    while let Some(msg) = receiver.recv().await {
+        buffer.push(msg);
+
+        if buffer.len() >= args.batch {
+            let index = utils::generate_index(&args.name);
+            let hash = utils::fingerprint(&buffer);
+
+            let item = HashQueueItem {
+                index: index.clone(),
+                hash: hash.clone(),
+            };
+            match sender_blockchain.send(item).await {
+                Ok(_) => (),
+                Err(e) => eprintln!("Failed to enqueue message to blockchain sender: {}", e),
+            }
+
+            let item = BatchLogsQueueItem {
+                index: index.clone(),
+                content: buffer.clone(),
+            };
+            match sender_elastic.send(item).await {
+                Ok(_) => (),
+                Err(e) => eprintln!("Failed to enqueue message to elastic sender: {}", e),
+            }
+
+            buffer.clear();
+        }
+    }
+}
 
 struct AppState {
     sender: mpsc::Sender<Value>,
@@ -41,187 +160,37 @@ async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl 
     HttpResponse::Ok().body("Data received and being processed.")
 }
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 16)]
-async fn main() -> std::io::Result<()> {
-    let threads_workers = env::var("THREADS_WORKERS")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(THREADS_WORKERS);
+#[derive(Parser, Debug)]
+#[command(name = "audita-worker")]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long, default_value = "worker")]
+    name: String,
 
-    let threads_dispatchers = env::var("THREADS_DISPATCHERS")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(THREADS_DISPATCHERS);
+    #[arg(short, long, default_value_t = 8080)]
+    port: u16,
 
-    let batch_size = env::var("BATCH_SIZE")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(BATCH_SIZE);
+    #[arg(short, long, default_value_t = 10000)]
+    batch: usize,
 
-    let queue_size = env::var("QUEUE_SIZE")
-        .ok()
-        .and_then(|v| v.parse::<usize>().ok())
-        .unwrap_or(QUEUE_SIZE);
+    #[arg(short, long, default_value_t = 8192)]
+    queue_worker: usize,
 
-    let (sender, receiver) = mpsc::channel(queue_size);
-    let receiver = Arc::new(tokio::sync::Mutex::new(receiver));
+    #[arg(long, default_value_t = 128)]
+    queue_ethereum: usize,
 
-    let app = web::Data::new(Arc::new(AppState { sender }));
+    #[arg(long, default_value_t = 128)]
+    queue_elastic: usize,
 
-    for i in 0..threads_workers {
-        let receiver = Arc::clone(&receiver);
-        tokio::spawn(async move {
-            let mut buffer = Vec::new();
+    #[arg(short, long, default_value_t = 1)]
+    dispatchers: usize,
 
-            println!("Worker {} started.", i);
+    #[arg(long, default_value_t = false)]
+    disable_elastic: bool,
 
-            while let Some(msg) = receiver.lock().await.recv().await {
-                buffer.push(msg);
+    #[arg(long, default_value_t = false)]
+    disable_ethereum: bool,
 
-                if buffer.len() >= batch_size {
-                    println!(
-                        "Worker {} processing batch of {} messages.",
-                        i,
-                        buffer.len()
-                    );
-                    let mut data = buffer.clone();
-                    tokio::spawn(async move {
-                        proccess(&mut data).await;
-                    });
-                    buffer.clear();
-                }
-            }
-
-            println!("Worker {} finished.", i);
-        });
-    }
-
-    println!(
-        "Starting HTTP server on 127.0.0.1:8080 with {} dispatchers.",
-        threads_dispatchers
-    );
-
-    HttpServer::new(move || App::new().app_data(app.clone()).service(receive))
-        .workers(threads_dispatchers)
-        .bind("127.0.0.1:8080")?
-        .run()
-        .await
-}
-
-async fn proccess(content: &mut Vec<Value>) {
-    let index = generate_index_name();
-    let mut hash = String::new();
-
-    println!(
-        "Processing batch of {} documents for index: {}",
-        content.len(),
-        index
-    );
-
-    for doc in content.iter() {
-        let mut hasher = Sha256::new();
-        hasher.update(hash.as_bytes());
-        hasher.update(doc.to_string());
-        hash = format!("{:x}", hasher.finalize());
-    }
-
-    println!("Generated hash for batch: {}", hash);
-
-    let storage = Storage {
-        url: ELASTIC_URL.into(),
-        username: ELASTIC_USERNAME.into(),
-        password: ELASTIC_PASSWORD.into(),
-    };
-
-    let ethereum = Ethereum {
-        url: RPC_URL.into(),
-        contract: RPC_CONTRACT.into(),
-    };
-
-    println!("Storing batch in Elasticsearch for index: {}", index);
-    let _ = storage.store(&index, &content).await.unwrap();
-
-    println!("Storing hash in Ethereum for index: {}", index);
-    let receipt = ethereum.store(&index, &hash).await.unwrap();
-
-    println!(
-        "Batch processed successfully. Index: {}, Hash: {}, Ethereum Receipt: {}",
-        index, hash, receipt
-    );
-}
-
-fn generate_index_name() -> String {
-    let current_time = Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
-    let random_string: String = rand::thread_rng()
-        .sample_iter(&rand::distributions::Alphanumeric)
-        .take(8)
-        .map(char::from)
-        .collect();
-    format!("{}-{}-{}", current_time, WORKER_NAME, random_string).to_lowercase()
-}
-
-struct Storage {
-    url: String,
-    username: String,
-    password: String,
-}
-
-impl Storage {
-    async fn store(&self, index: &String, content: &Vec<Value>) -> Result<(), Box<dyn Error>> {
-        let url = Url::parse(&self.url).unwrap();
-        let pool: SingleNodeConnectionPool = SingleNodeConnectionPool::new(url);
-        let credentials = Credentials::Basic(self.username.clone(), self.password.clone());
-        let transport = TransportBuilder::new(pool)
-            .auth(credentials)
-            .build()
-            .unwrap();
-        let elastic = Elasticsearch::new(transport);
-
-        let mut ops: Vec<BulkOperation<Value>> = Vec::new();
-
-        for (i, d) in content.iter().enumerate() {
-            ops.push(BulkOperation::create(d.clone()).id(i.to_string()).into());
-        }
-
-        let response = elastic
-            .bulk(BulkParts::Index(&index))
-            .body(ops)
-            .send()
-            .await?;
-
-        if !response.status_code().is_success() {
-            let error_body: Value = response.json().await?;
-            eprintln!("Bulk request failed: {:?}", error_body);
-        }
-
-        Ok(())
-    }
-}
-
-struct Ethereum {
-    url: String,
-    contract: String,
-}
-
-impl Ethereum {
-    async fn store(&self, index: &String, hash: &String) -> Result<String, Box<dyn Error>> {
-        let url = self.url.parse().unwrap();
-        let provider = ProviderBuilder::new().on_http(url);
-        let contract = self.contract.parse().unwrap();
-        let contract = Auditability::new(contract, provider);
-
-        let hash = B256::from_slice(&hex::decode(hash).unwrap());
-        let tx = contract.store(index.clone(), hash).send().await.unwrap();
-        let receipt = tx.get_receipt().await.unwrap();
-
-        Ok(format!("{}", receipt.transaction_hash))
-    }
-}
-
-sol! {
-    #[sol(rpc)]
-    contract Auditability {
-        function store(string index, bytes32 root) external;
-        function proof(string index, bytes32 root) external view returns (bool);
-    }
+    #[arg(long, default_value = "./audita.toml")]
+    config: String,
 }
