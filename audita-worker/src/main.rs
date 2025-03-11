@@ -2,12 +2,17 @@ mod cli;
 mod config;
 mod elastic_client;
 mod eth_client;
+mod prometheus;
 mod utils;
 
 use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use elastic_client::ElasticClient;
 use eth_client::EthClient;
+use prometheus::{
+    prometheus_metrics, ELASTIC_ERRORS, ELASTIC_QUEUE, ELASTIC_SUCCESS, ETHEREUM_ERRORS,
+    ETHEREUM_QUEUE, ETHEREUM_SUCCESS, PROCESSING_TIME, WORKER_QUEUE,
+};
 use serde_json::Value;
 use std::{sync::Arc, time::Instant};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -36,11 +41,18 @@ async fn main() -> std::io::Result<()> {
         sender: sender_worker,
     }));
 
-    HttpServer::new(move || App::new().app_data(app.clone()).service(receive))
-        .workers(config.dispatchers)
-        .bind(("127.0.0.1", config.port))?
-        .run()
-        .await
+    let prometheus = prometheus_metrics();
+
+    HttpServer::new(move || {
+        App::new()
+            .wrap(prometheus.clone())
+            .app_data(app.clone())
+            .service(receive)
+    })
+    .workers(config.dispatchers)
+    .bind(("127.0.0.1", config.port))?
+    .run()
+    .await
 }
 
 struct HashQueueItem {
@@ -65,15 +77,20 @@ async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
     .unwrap();
 
     while let Some(msg) = receiver.recv().await {
+        ELASTIC_QUEUE.dec();
         if !args.disable_elastic {
             let start_time = Instant::now();
             let result = elastic_client.store(&msg.index, &msg.content).await;
             match result {
                 Ok(_) => {
+                    ELASTIC_SUCCESS.inc();
                     let elapsed_time = start_time.elapsed();
                     println!("[Sender Elastic]: {} {:?}", msg.index, elapsed_time)
                 }
-                Err(e) => eprintln!("[Sender Elastic] [Error]: {}", e),
+                Err(e) => {
+                    ELASTIC_ERRORS.inc();
+                    eprintln!("[Sender Elastic] [Error]: {}", e)
+                }
             }
         }
     }
@@ -92,15 +109,20 @@ async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
     .unwrap();
 
     while let Some(msg) = receiver.recv().await {
+        ETHEREUM_QUEUE.dec();
         if !args.disable_ethereum {
             let start_time = Instant::now();
             let result = eth_client.store(&msg.index, &msg.hash).await;
             match result {
                 Ok(_) => {
+                    ETHEREUM_SUCCESS.inc();
                     let elapsed_time = start_time.elapsed();
                     println!("[Sender Ethereum]: {} {:?}", msg.index, elapsed_time)
                 }
-                Err(e) => eprintln!("[Sender Ethereum] [Error]: {}", e),
+                Err(e) => {
+                    ETHEREUM_ERRORS.inc();
+                    eprintln!("[Sender Ethereum] [Error]: {}", e)
+                }
             }
         }
     }
@@ -117,6 +139,7 @@ async fn thread_worker(
     let mut buffer = Vec::new();
 
     while let Some(msg) = receiver.recv().await {
+        WORKER_QUEUE.dec();
         buffer.push(msg);
 
         if buffer.len() >= config.batch {
@@ -128,7 +151,7 @@ async fn thread_worker(
                 hash: hash.clone(),
             };
             match sender_blockchain.send(item).await {
-                Ok(_) => (),
+                Ok(_) => ETHEREUM_QUEUE.inc(),
                 Err(e) => eprintln!("Failed to enqueue message to blockchain sender: {}", e),
             }
 
@@ -137,7 +160,7 @@ async fn thread_worker(
                 content: buffer.clone(),
             };
             match sender_elastic.send(item).await {
-                Ok(_) => (),
+                Ok(_) => ELASTIC_QUEUE.inc(),
                 Err(e) => eprintln!("Failed to enqueue message to elastic sender: {}", e),
             }
 
@@ -152,8 +175,13 @@ struct AppState {
 
 #[post("/")]
 async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl Responder {
+    let timer = PROCESSING_TIME.start_timer();
+
     if let Err(_) = app.sender.send(data.clone()).await {
+        timer.observe_duration();
         return HttpResponse::InternalServerError().body("Failed to enqueue message.");
     }
+    WORKER_QUEUE.inc();
+    timer.observe_duration();
     HttpResponse::Ok().body("Data received and being processed.")
 }
