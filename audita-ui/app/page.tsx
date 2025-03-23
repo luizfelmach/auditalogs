@@ -13,10 +13,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAccount, useDisconnect } from "wagmi";
 import { FactoryManager } from "@/components/factory-manager";
 import { ContractManager } from "@/components/contract-manager";
+import { useEffect, useState } from "react";
 
 export default function Home() {
   const { isConnected } = useAccount();
   const { disconnect } = useDisconnect();
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
 
   return (
     <main className="container mx-auto p-4 max-w-6xl">

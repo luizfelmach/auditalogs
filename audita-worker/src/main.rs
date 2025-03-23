@@ -117,7 +117,7 @@ async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
                 Ok(_) => {
                     ETHEREUM_SUCCESS.inc();
                     let elapsed_time = start_time.elapsed();
-                    println!("[Sender Ethereum]: {} {:?}", msg.index, elapsed_time)
+                    println!("[Sender Ethereum]: {} {} {:?}", msg.index, msg.hash, elapsed_time)
                 }
                 Err(e) => {
                     ETHEREUM_ERRORS.inc();

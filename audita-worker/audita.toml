@@ -8,7 +8,7 @@ dispatchers = 1
 
 [ethereum]
 url = "http://localhost:8545"
-contract = "0x42699A7612A82f1d9C36148af9C77354759b210b"
+contract = "0x2F632b08EcE7E9DcA0fCff1F91c1D5Bc245440Eb"
 primary_key = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
 
 [elastic]

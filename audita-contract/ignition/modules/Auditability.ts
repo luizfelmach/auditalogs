@@ -1,8 +1,8 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
 
-const AuditabilityModule = buildModule("AuditabilityModule", (m) => {
-  const auditability = m.contract("Auditability");
+const AuditabilityFactoryModule = buildModule("AuditabilityFactoryModule", (m) => {
+  const auditability = m.contract("AuditabilityFactory");
   return { auditability };
 });
 
-export default AuditabilityModule;
+export default AuditabilityFactoryModule;

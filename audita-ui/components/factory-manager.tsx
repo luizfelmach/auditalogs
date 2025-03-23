@@ -29,7 +29,7 @@ import { client } from "@/lib/wagmi";
 export function FactoryManager() {
   const { address } = useAccount();
   const [factoryAddress, setFactoryAddress] = useState(
-    "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82"
+    "0x42699A7612A82f1d9C36148af9C77354759b210b"
   );
   const [isConnected, setIsConnected] = useState(false);
   const [isFetching, setIsFetching] = useState(false);

@@ -2,22 +2,28 @@
 
 import { Button } from "@/components/ui/button";
 import { Wallet } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAccount, useConnect } from "wagmi";
 import { metaMask } from "wagmi/connectors";
 
 export function ConnectWallet() {
+  const [hasMounted, setHasMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const { connect, error, isPending } = useConnect();
+
+  useEffect(() => {
+    if (error) toast.error(`Failed to connect: ${error?.message}`);
+    setHasMounted(true);
+  }, [error]);
+
+  if (!hasMounted) {
+    return null;
+  }
 
   const handleConnect = () => {
     connect({ connector: metaMask() });
   };
-
-  useEffect(() => {
-    if (error) toast.error(`Failed to connect: ${error?.message}`);
-  }, [error]);
 
   const formatAccount = (address: string) => {
     return `${address.substring(0, 6)}...${address.substring(
