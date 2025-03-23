@@ -1,8 +1,9 @@
 port = 8080
 name = "worker"
-queue_worker = 10000
-queue_ethereum = 10000
-queue_elastic = 10000
+batch = 500000
+queue_worker = 20
+queue_ethereum = 20
+queue_elastic = 20
 dispatchers = 1
 
 [ethereum]

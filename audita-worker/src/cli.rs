@@ -7,6 +7,9 @@ pub struct Args {
     #[arg(long, default_value = "./audita.toml")]
     pub config: String,
 
+    #[arg(long)]
+    pub batch: usize,
+
     #[arg(long, default_value_t = false)]
     pub disable_elastic: bool,
 

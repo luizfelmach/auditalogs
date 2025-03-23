@@ -15,9 +15,6 @@ pub struct Config {
     #[serde(default = "default_name")]
     pub name: String,
 
-    #[serde(default = "default_batch")]
-    pub batch: usize,
-
     #[serde(default = "default_queue_worker")]
     pub queue_worker: usize,
 
@@ -81,7 +78,6 @@ impl fmt::Display for Config {
            App:\n\
            - Name: {}\n\
            - Port: {}\n\
-           - Batch: {}\n\
            \nChannel:\n\
            - Queue Workers: {}\n\
            - Queue Ethereum: {}\n\
@@ -90,7 +86,6 @@ impl fmt::Display for Config {
            \n{}\n\n{}\n===================================",
             self.name,
             self.port,
-            self.batch,
             self.queue_worker,
             self.queue_ethereum,
             self.queue_elastic,

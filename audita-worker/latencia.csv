@@ -1,0 +1,454 @@
+Processo,Tempo,Batch Size
+Gerar hash,14.100199ms,1000
+Enviar para o Elasticsearch,162.108741ms,1000
+Enviar para a Ethereum,772.146381ms,1000
+Gerar hash,10.750488ms,1000
+Enviar para o Elasticsearch,177.381732ms,1000
+Enviar para a Ethereum,1.026006376s,1000
+Gerar hash,9.380765ms,1000
+Enviar para o Elasticsearch,147.771257ms,1000
+Enviar para a Ethereum,751.936103ms,1000
+Gerar hash,13.12575ms,1000
+Enviar para o Elasticsearch,131.853546ms,1000
+Enviar para a Ethereum,762.024019ms,1000
+Gerar hash,8.233079ms,1000
+Enviar para o Elasticsearch,128.925568ms,1000
+Enviar para a Ethereum,763.06571ms,1000
+Gerar hash,9.781758ms,1000
+Enviar para o Elasticsearch,131.658908ms,1000
+Enviar para a Ethereum,764.393569ms,1000
+Gerar hash,9.427206ms,1000
+Enviar para o Elasticsearch,132.536977ms,1000
+Gerar hash,10.61549ms,1000
+Enviar para a Ethereum,1.013447067s,1000
+Enviar para o Elasticsearch,157.67478ms,1000
+Enviar para a Ethereum,767.439884ms,1000
+Gerar hash,9.406384ms,1000
+Enviar para o Elasticsearch,137.953185ms,1000
+Gerar hash,8.883459ms,1000
+Enviar para a Ethereum,1.014071607s,1000
+Enviar para o Elasticsearch,145.32928ms,1000
+Enviar para a Ethereum,764.05175ms,1000
+Gerar hash,10.418851ms,1000
+Enviar para o Elasticsearch,137.757929ms,1000
+Enviar para a Ethereum,765.327038ms,1000
+Gerar hash,10.145734ms,1000
+Enviar para o Elasticsearch,145.74058ms,1000
+Enviar para a Ethereum,762.610458ms,1000
+Gerar hash,12.858507ms,1000
+Enviar para o Elasticsearch,148.871527ms,1000
+Enviar para a Ethereum,602.715715ms,1000
+Gerar hash,12.246851ms,1000
+Enviar para o Elasticsearch,132.260467ms,1000
+Enviar para a Ethereum,763.709764ms,1000
+Gerar hash,10.664459ms,1000
+Enviar para o Elasticsearch,135.72077ms,1000
+Enviar para a Ethereum,619.034039ms,1000
+Gerar hash,9.646211ms,1000
+Enviar para o Elasticsearch,163.776045ms,1000
+Enviar para a Ethereum,629.961803ms,1000
+Gerar hash,12.00184ms,1000
+Enviar para o Elasticsearch,151.515759ms,1000
+Enviar para a Ethereum,768.407874ms,1000
+Gerar hash,9.839636ms,1000
+Enviar para o Elasticsearch,123.690297ms,1000
+Enviar para a Ethereum,632.79826ms,1000
+Gerar hash,8.579663ms,1000
+Enviar para o Elasticsearch,148.087479ms,1000
+Enviar para a Ethereum,643.153653ms,1000
+Gerar hash,8.873845ms,1000
+Enviar para o Elasticsearch,123.000478ms,1000
+Enviar para a Ethereum,513.627299ms,1000
+Gerar hash,13.051751ms,1000
+Enviar para o Elasticsearch,142.349178ms,1000
+Gerar hash,14.947533ms,1000
+Enviar para a Ethereum,1.017694024s,1000
+Enviar para o Elasticsearch,149.49779ms,1000
+Gerar hash,11.403602ms,1000
+Enviar para a Ethereum,1.017510448s,1000
+Enviar para o Elasticsearch,136.579151ms,1000
+Gerar hash,8.367259ms,1000
+Enviar para a Ethereum,1.011345657s,1000
+Enviar para o Elasticsearch,139.335714ms,1000
+Gerar hash,12.120091ms,1000
+Enviar para a Ethereum,1.013726386s,1000
+Enviar para o Elasticsearch,222.367419ms,1000
+Gerar hash,9.287622ms,1000
+Enviar para a Ethereum,1.013089712s,1000
+Enviar para o Elasticsearch,172.789878ms,1000
+Enviar para a Ethereum,758.794405ms,1000
+Gerar hash,19.274546ms,1000
+Enviar para o Elasticsearch,132.39661ms,1000
+Gerar hash,10.726911ms,1000
+Enviar para a Ethereum,1.015297315s,1000
+Enviar para o Elasticsearch,132.82591ms,1000
+Enviar para a Ethereum,762.22812ms,1000
+Gerar hash,8.913983ms,1000
+Enviar para o Elasticsearch,131.951802ms,1000
+Gerar hash,13.202829ms,1000
+Enviar para a Ethereum,1.013930868s,1000
+Enviar para o Elasticsearch,132.916208ms,1000
+Enviar para a Ethereum,764.484166ms,1000
+Gerar hash,10.177416ms,1000
+Enviar para o Elasticsearch,144.631574ms,1000
+Enviar para a Ethereum,762.341026ms,1000
+Gerar hash,8.409204ms,1000
+Enviar para o Elasticsearch,130.07014ms,1000
+Enviar para a Ethereum,763.380515ms,1000
+Gerar hash,12.675916ms,1000
+Enviar para o Elasticsearch,162.646613ms,1000
+Enviar para a Ethereum,763.833329ms,1000
+Gerar hash,12.036047ms,1000
+Enviar para o Elasticsearch,136.584517ms,1000
+Gerar hash,8.427033ms,1000
+Enviar para a Ethereum,1.012777431s,1000
+Enviar para o Elasticsearch,167.412738ms,1000
+Enviar para a Ethereum,765.057653ms,1000
+Gerar hash,10.476959ms,1000
+Enviar para o Elasticsearch,135.096063ms,1000
+Enviar para a Ethereum,762.639269ms,1000
+Gerar hash,12.062683ms,1000
+Enviar para o Elasticsearch,145.587396ms,1000
+Enviar para a Ethereum,825.288151ms,1000
+Gerar hash,12.564984ms,1000
+Enviar para o Elasticsearch,153.10858ms,1000
+Gerar hash,16.085638ms,1000
+Enviar para o Elasticsearch,149.432216ms,1000
+Enviar para a Ethereum,1.514368429s,1000
+Gerar hash,9.037769ms,1000
+Enviar para a Ethereum,513.418652ms,1000
+Enviar para o Elasticsearch,128.989055ms,1000
+Enviar para a Ethereum,760.94081ms,1000
+Gerar hash,13.028133ms,1000
+Enviar para o Elasticsearch,145.085419ms,1000
+Enviar para a Ethereum,815.084716ms,1000
+Gerar hash,17.373322ms,1000
+Enviar para o Elasticsearch,135.624698ms,1000
+Enviar para a Ethereum,516.291476ms,1000
+Gerar hash,11.678878ms,1000
+Enviar para o Elasticsearch,134.334955ms,1000
+Gerar hash,10.834737ms,1000
+Enviar para a Ethereum,1.013743791s,1000
+Enviar para o Elasticsearch,145.762326ms,1000
+Enviar para a Ethereum,763.773829ms,1000
+Gerar hash,10.744205ms,1000
+Enviar para o Elasticsearch,135.695066ms,1000
+Enviar para a Ethereum,762.343133ms,1000
+Gerar hash,12.767734ms,1000
+Enviar para o Elasticsearch,125.142396ms,1000
+Enviar para a Ethereum,764.311558ms,1000
+Gerar hash,19.708285ms,1000
+Enviar para o Elasticsearch,168.704364ms,1000
+Enviar para a Ethereum,518.463133ms,1000
+Gerar hash,8.134423ms,1000
+Enviar para o Elasticsearch,150.327528ms,1000
+Enviar para a Ethereum,764.343774ms,1000
+Gerar hash,9.66623ms,1000
+Enviar para o Elasticsearch,138.625949ms,1000
+Enviar para a Ethereum,512.685893ms,1000
+Gerar hash,14.152611ms,1000
+Enviar para o Elasticsearch,160.150959ms,1000
+Gerar hash,8.106882ms,1000
+Enviar para a Ethereum,1.016025317s,1000
+Enviar para o Elasticsearch,134.056862ms,1000
+Enviar para a Ethereum,512.254767ms,1000
+Gerar hash,8.328004ms,1000
+Enviar para o Elasticsearch,155.317363ms,1000
+Enviar para a Ethereum,762.661203ms,1000
+Gerar hash,9.992643ms,1000
+Enviar para o Elasticsearch,141.626199ms,1000
+Enviar para a Ethereum,762.912626ms,1000
+Gerar hash,8.624009ms,1000
+Enviar para o Elasticsearch,157.375752ms,1000
+Enviar para a Ethereum,264.998518ms,1000
+Gerar hash,11.491656ms,1000
+Enviar para o Elasticsearch,145.088022ms,1000
+Enviar para a Ethereum,262.866045ms,1000
+Gerar hash,12.487054ms,1000
+Enviar para o Elasticsearch,154.873932ms,1000
+Enviar para a Ethereum,262.166629ms,1000
+Gerar hash,8.350423ms,1000
+Enviar para o Elasticsearch,144.179145ms,1000
+Enviar para a Ethereum,338.884729ms,1000
+Gerar hash,14.54487ms,1000
+Enviar para o Elasticsearch,134.925739ms,1000
+Enviar para a Ethereum,262.310493ms,1000
+Gerar hash,13.060482ms,1000
+Enviar para o Elasticsearch,126.618141ms,1000
+Enviar para a Ethereum,357.462169ms,1000
+Gerar hash,8.389041ms,1000
+Enviar para o Elasticsearch,135.294015ms,1000
+Enviar para a Ethereum,265.013236ms,1000
+Gerar hash,82.617124ms,10000
+Enviar para o Elasticsearch,318.445646ms,10000
+Enviar para a Ethereum,768.354374ms,10000
+Gerar hash,79.305096ms,10000
+Enviar para o Elasticsearch,256.200975ms,10000
+Enviar para a Ethereum,762.099612ms,10000
+Gerar hash,87.911303ms,10000
+Enviar para o Elasticsearch,285.942861ms,10000
+Enviar para a Ethereum,941.979116ms,10000
+Gerar hash,99.459765ms,10000
+Enviar para o Elasticsearch,383.460356ms,10000
+Enviar para a Ethereum,513.980301ms,10000
+Gerar hash,121.554212ms,10000
+Enviar para o Elasticsearch,394.778505ms,10000
+Enviar para a Ethereum,459.897875ms,10000
+Gerar hash,97.805867ms,10000
+Enviar para o Elasticsearch,387.328541ms,10000
+Gerar hash,122.55958ms,10000
+Enviar para o Elasticsearch,450.630849ms,10000
+Enviar para a Ethereum,2.51866757s,10000
+Gerar hash,149.908385ms,10000
+Enviar para o Elasticsearch,456.239553ms,10000
+Enviar para a Ethereum,773.407299ms,10000
+Gerar hash,139.304592ms,10000
+Enviar para o Elasticsearch,554.990969ms,10000
+Enviar para a Ethereum,1.268961953s,10000
+Gerar hash,153.908948ms,10000
+Enviar para o Elasticsearch,489.24471ms,10000
+Enviar para a Ethereum,1.261400785s,10000
+Gerar hash,117.539221ms,10000
+Enviar para a Ethereum,505.720665ms,10000
+Enviar para o Elasticsearch,454.60796ms,10000
+Gerar hash,102.04611ms,10000
+Enviar para o Elasticsearch,363.625108ms,10000
+Enviar para a Ethereum,1.262272828s,10000
+Gerar hash,130.184364ms,10000
+Enviar para o Elasticsearch,503.709196ms,10000
+Enviar para a Ethereum,1.012383841s,10000
+Gerar hash,113.935923ms,10000
+Enviar para o Elasticsearch,479.000443ms,10000
+Gerar hash,132.023465ms,10000
+Enviar para a Ethereum,1.261676329s,10000
+Enviar para o Elasticsearch,317.730989ms,10000
+Gerar hash,125.272584ms,10000
+Enviar para a Ethereum,758.948923ms,10000
+Enviar para o Elasticsearch,497.625261ms,10000
+Enviar para a Ethereum,1.013212404s,10000
+Gerar hash,124.030852ms,10000
+Enviar para o Elasticsearch,463.686191ms,10000
+Enviar para a Ethereum,1.010738639s,10000
+Gerar hash,141.034768ms,10000
+Enviar para o Elasticsearch,469.493904ms,10000
+Enviar para a Ethereum,759.87234ms,10000
+Gerar hash,99.765144ms,10000
+Enviar para o Elasticsearch,488.992694ms,10000
+Enviar para a Ethereum,1.014927331s,10000
+Gerar hash,109.375766ms,10000
+Enviar para o Elasticsearch,358.81063ms,10000
+Enviar para a Ethereum,763.120659ms,10000
+Gerar hash,118.258325ms,10000
+Enviar para o Elasticsearch,344.235242ms,10000
+Enviar para a Ethereum,1.2629739s,10000
+Gerar hash,114.252525ms,10000
+Enviar para o Elasticsearch,433.748009ms,10000
+Gerar hash,161.320618ms,10000
+Enviar para a Ethereum,1.262603268s,10000
+Enviar para o Elasticsearch,443.104995ms,10000
+Enviar para a Ethereum,759.067493ms,10000
+Gerar hash,178.365868ms,10000
+Enviar para o Elasticsearch,376.216949ms,10000
+Enviar para a Ethereum,1.013921499s,10000
+Gerar hash,146.43656ms,10000
+Enviar para o Elasticsearch,415.129682ms,10000
+Gerar hash,161.49415ms,10000
+Enviar para o Elasticsearch,401.723171ms,10000
+Enviar para a Ethereum,1.514394767s,10000
+Gerar hash,153.222397ms,10000
+Enviar para a Ethereum,771.39094ms,10000
+Enviar para o Elasticsearch,605.598516ms,10000
+Enviar para a Ethereum,757.134565ms,10000
+Gerar hash,103.769248ms,10000
+Enviar para o Elasticsearch,416.907288ms,10000
+Enviar para a Ethereum,1.012507598s,10000
+Gerar hash,128.921734ms,10000
+Enviar para o Elasticsearch,397.306394ms,10000
+Gerar hash,130.923185ms,10000
+Enviar para a Ethereum,1.268009671s,10000
+Enviar para o Elasticsearch,405.039278ms,10000
+Enviar para a Ethereum,503.862776ms,10000
+Gerar hash,121.695366ms,10000
+Enviar para o Elasticsearch,397.630184ms,10000
+Enviar para a Ethereum,1.011771068s,10000
+Gerar hash,145.381394ms,10000
+Enviar para o Elasticsearch,458.65871ms,10000
+Gerar hash,136.590679ms,10000
+Enviar para o Elasticsearch,449.417479ms,10000
+Enviar para a Ethereum,2.014886883s,10000
+Gerar hash,118.769613ms,10000
+Enviar para o Elasticsearch,312.606495ms,10000
+Enviar para a Ethereum,1.012870916s,10000
+Gerar hash,156.213811ms,10000
+Enviar para o Elasticsearch,378.342898ms,10000
+Enviar para a Ethereum,1.015774285s,10000
+Gerar hash,134.544194ms,10000
+Enviar para o Elasticsearch,506.20271ms,10000
+Gerar hash,139.014504ms,10000
+Enviar para a Ethereum,1.263766383s,10000
+Enviar para o Elasticsearch,396.923285ms,10000
+Gerar hash,139.46424ms,10000
+Enviar para a Ethereum,762.413963ms,10000
+Enviar para o Elasticsearch,414.507361ms,10000
+Gerar hash,110.763546ms,10000
+Enviar para o Elasticsearch,467.449026ms,10000
+Enviar para a Ethereum,1.514993899s,10000
+Gerar hash,132.634323ms,10000
+Enviar para a Ethereum,506.028096ms,10000
+Enviar para o Elasticsearch,437.737579ms,10000
+Gerar hash,123.004617ms,10000
+Enviar para o Elasticsearch,475.260669ms,10000
+Enviar para a Ethereum,1.264040603s,10000
+Gerar hash,118.919227ms,10000
+Enviar para o Elasticsearch,465.017847ms,10000
+Enviar para a Ethereum,1.263282521s,10000
+Gerar hash,111.108256ms,10000
+Enviar para o Elasticsearch,540.245015ms,10000
+Gerar hash,122.934741ms,10000
+Enviar para a Ethereum,1.263109718s,10000
+Enviar para o Elasticsearch,496.71539ms,10000
+Gerar hash,105.31996ms,10000
+Enviar para a Ethereum,1.515750265s,10000
+Enviar para o Elasticsearch,514.438985ms,10000
+Gerar hash,130.668735ms,10000
+Enviar para o Elasticsearch,417.720904ms,10000
+Enviar para a Ethereum,1.269046265s,10000
+Gerar hash,150.09722ms,10000
+Enviar para a Ethereum,512.924244ms,10000
+Enviar para o Elasticsearch,422.989804ms,10000
+Gerar hash,153.885669ms,10000
+Enviar para a Ethereum,1.017364715s,10000
+Enviar para o Elasticsearch,443.295775ms,10000
+Gerar hash,112.90814ms,10000
+Enviar para a Ethereum,1.012478719s,10000
+Enviar para o Elasticsearch,331.121766ms,10000
+Gerar hash,151.77905ms,10000
+Enviar para a Ethereum,1.262262577s,10000
+Enviar para o Elasticsearch,433.239827ms,10000
+Gerar hash,139.365701ms,10000
+Enviar para a Ethereum,1.014587383s,10000
+Enviar para o Elasticsearch,548.97933ms,10000
+Enviar para a Ethereum,502.303016ms,10000
+Gerar hash,130.655692ms,10000
+Enviar para o Elasticsearch,413.085443ms,10000
+Gerar hash,148.366201ms,10000
+Enviar para a Ethereum,1.51288874s,10000
+Enviar para o Elasticsearch,425.961571ms,10000
+Enviar para a Ethereum,510.610153ms,10000
+Gerar hash,128.414571ms,10000
+Enviar para o Elasticsearch,428.269772ms,10000
+Gerar hash,147.763289ms,10000
+Enviar para a Ethereum,1.515509362s,10000
+Enviar para o Elasticsearch,350.62455ms,10000
+Enviar para a Ethereum,505.626658ms,10000
+Gerar hash,123.596123ms,10000
+Enviar para o Elasticsearch,350.697411ms,10000
+Gerar hash,107.962061ms,10000
+Enviar para a Ethereum,1.010663749s,10000
+Enviar para o Elasticsearch,416.835372ms,10000
+Gerar hash,144.406791ms,10000
+Enviar para a Ethereum,1.012118726s,10000
+Enviar para o Elasticsearch,374.451115ms,10000
+Gerar hash,112.452577ms,10000
+Enviar para o Elasticsearch,535.513592ms,10000
+Enviar para a Ethereum,1.765814613s,10000
+Gerar hash,129.538365ms,10000
+Enviar para a Ethereum,258.671391ms,10000
+Enviar para o Elasticsearch,461.721587ms,10000
+Gerar hash,139.514374ms,10000
+Enviar para a Ethereum,1.012450919s,10000
+Enviar para o Elasticsearch,400.286762ms,10000
+Gerar hash,109.176358ms,10000
+Enviar para a Ethereum,1.010444735s,10000
+Enviar para o Elasticsearch,437.231175ms,10000
+Gerar hash,108.348255ms,10000
+Enviar para o Elasticsearch,327.282704ms,10000
+Enviar para a Ethereum,1.011176294s,10000
+Enviar para a Ethereum,1.010609523s,10000
+Enviar para a Ethereum,1.010449996s,10000
+Enviar para a Ethereum,759.326854ms,10000
+Enviar para a Ethereum,1.011965959s,10000
+Gerar hash,904.842318ms,100000
+Enviar para a Ethereum,2.018327746s,100000
+Enviar para o Elasticsearch,3.356475683s,100000
+Gerar hash,913.089179ms,100000
+Enviar para a Ethereum,763.950792ms,100000
+Enviar para o Elasticsearch,2.348926317s,100000
+Gerar hash,993.10153ms,100000
+Enviar para a Ethereum,764.126788ms,100000
+Enviar para o Elasticsearch,2.470168108s,100000
+Gerar hash,972.166451ms,100000
+Enviar para a Ethereum,1.133237352s,100000
+Enviar para o Elasticsearch,2.540787042s,100000
+Gerar hash,1.001148284s,100000
+Enviar para a Ethereum,950.552173ms,100000
+Enviar para o Elasticsearch,2.526260613s,100000
+Gerar hash,989.934534ms,100000
+Enviar para a Ethereum,945.27671ms,100000
+Enviar para o Elasticsearch,2.700641623s,100000
+Gerar hash,886.821195ms,100000
+Enviar para a Ethereum,2.218942489s,100000
+Enviar para o Elasticsearch,2.823638298s,100000
+Gerar hash,880.812293ms,100000
+Enviar para a Ethereum,2.015786335s,100000
+Enviar para o Elasticsearch,2.558187617s,100000
+Gerar hash,1.034332743s,100000
+Enviar para a Ethereum,515.673569ms,100000
+Enviar para o Elasticsearch,2.515596921s,100000
+Gerar hash,1.094155649s,100000
+Enviar para a Ethereum,1.318205172s,100000
+Enviar para o Elasticsearch,2.895005632s,100000
+Gerar hash,1.037777324s,100000
+Enviar para a Ethereum,263.735444ms,100000
+Enviar para o Elasticsearch,3.184692168s,100000
+Gerar hash,980.347912ms,100000
+Enviar para a Ethereum,1.015968316s,100000
+Enviar para o Elasticsearch,2.570638984s,100000
+Gerar hash,5.004544164s,500000
+Enviar para a Ethereum,1.016650131s,500000
+Enviar para o Elasticsearch,11.182854064s,500000
+Gerar hash,5.087258079s,500000
+Enviar para a Ethereum,483.232506ms,500000
+Enviar para o Elasticsearch,12.017138779s,500000
+Gerar hash,6.259935697s,500000
+Enviar para a Ethereum,1.032460922s,500000
+Enviar para o Elasticsearch,12.221302781s,500000
+Gerar hash,5.847592306s,500000
+Enviar para a Ethereum,1.027410393s,500000
+Enviar para o Elasticsearch,12.527662485s,500000
+Gerar hash,6.019901911s,500000
+Enviar para a Ethereum,1.766658671s,500000
+Enviar para o Elasticsearch,12.321966331s,500000
+Gerar hash,8.361902995s,500000
+Enviar para a Ethereum,1.020243449s,500000
+Enviar para o Elasticsearch,14.694630119s,500000
+Gerar hash,6.068559233s,500000
+Enviar para a Ethereum,1.014413279s,500000
+Enviar para o Elasticsearch,13.223116264s,500000
+Gerar hash,6.020138837s,500000
+Enviar para a Ethereum,1.005688759s,500000
+Enviar para o Elasticsearch,12.041598965s,500000
+Gerar hash,6.112794583s,500000
+Enviar para a Ethereum,1.255916323s,500000
+Enviar para o Elasticsearch,12.551162212s,500000
+Gerar hash,5.905344717s,500000
+Enviar para a Ethereum,959.51688ms,500000
+Enviar para o Elasticsearch,11.26026373s,500000
+Gerar hash,6.556979471s,500000
+Enviar para a Ethereum,766.619355ms,500000
+Enviar para o Elasticsearch,12.416813096s,500000
+Gerar hash,6.72166734s,500000
+Enviar para a Ethereum,458.61812ms,500000
+Enviar para o Elasticsearch,12.846639843s,500000
+Gerar hash,7.408714667s,500000
+Enviar para a Ethereum,1.265889537s,500000
+Enviar para o Elasticsearch,13.180909525s,500000
+Gerar hash,6.10965394s,500000
+Enviar para a Ethereum,516.221239ms,500000
+Enviar para o Elasticsearch,12.69718065s,500000
+Gerar hash,6.994169546s,500000
+Enviar para a Ethereum,1.014776685s,500000
+Enviar para o Elasticsearch,13.373648543s,500000
+Gerar hash,6.673858151s,500000
+Enviar para a Ethereum,1.015796813s,500000
+Enviar para o Elasticsearch,11.756652969s,500000

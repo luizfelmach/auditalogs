@@ -21,7 +21,7 @@ use tokio::sync::mpsc::{self, Receiver, Sender};
 async fn main() -> std::io::Result<()> {
     let args = cli::Args::parse();
     let config = config::parse(args.config);
-    println!("{}", config);
+    //println!("{}", config);
 
     let (sender_worker, receiver_worker) = mpsc::channel(config.queue_worker);
     let (sender_elastic, receiver_elastic) = mpsc::channel(config.queue_elastic);
@@ -85,7 +85,7 @@ async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
                 Ok(_) => {
                     ELASTIC_SUCCESS.inc();
                     let elapsed_time = start_time.elapsed();
-                    println!("[Sender Elastic]: {} {:?}", msg.index, elapsed_time)
+                    println!("Elastic,{:?},{}", elapsed_time, args.batch)
                 }
                 Err(e) => {
                     ELASTIC_ERRORS.inc();
@@ -117,7 +117,7 @@ async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
                 Ok(_) => {
                     ETHEREUM_SUCCESS.inc();
                     let elapsed_time = start_time.elapsed();
-                    println!("[Sender Ethereum]: {} {:?}", msg.index, elapsed_time)
+                    println!("Ethereum,{:?},{}", elapsed_time, args.batch)
                 }
                 Err(e) => {
                     ETHEREUM_ERRORS.inc();
@@ -142,9 +142,12 @@ async fn thread_worker(
         WORKER_QUEUE.dec();
         buffer.push(msg);
 
-        if buffer.len() >= config.batch {
+        if buffer.len() >= args.batch {
+            let start_time = Instant::now();
             let index = utils::generate_index(&config.name);
             let hash = utils::fingerprint(&buffer);
+            let elapsed_time = start_time.elapsed();
+            println!("Worker,{:?},{}", elapsed_time, args.batch);
 
             let item = HashQueueItem {
                 index: index.clone(),
