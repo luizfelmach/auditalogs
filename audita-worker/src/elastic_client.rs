@@ -38,6 +38,7 @@ impl ElasticClient {
         let credentials = Credentials::Basic(username, password);
         let transport = TransportBuilder::new(pool)
             .auth(credentials)
+            .cert_validation(elasticsearch::cert::CertificateValidation::None)
             .build()
             .map_err(|e| ElasticClientError::TransportError(e.to_string()))?;
         let provider = Elasticsearch::new(transport);
