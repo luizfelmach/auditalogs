@@ -1,7 +1,7 @@
 use elasticsearch::{
     auth::Credentials,
     http::transport::{SingleNodeConnectionPool, TransportBuilder},
-    BulkOperation, BulkParts, Elasticsearch,
+    BulkOperation, BulkParts, Elasticsearch, IndexParts,
 };
 use serde_json::Value;
 use thiserror::Error;
@@ -19,6 +19,9 @@ pub enum ElasticClientError {
 
     #[error("Failed to parse response JSON: {0}")]
     ResponseParseError(String),
+
+    #[error("Index request failed: {0}")]
+    IndexRequestError(String),
 }
 
 pub struct ElasticClient {
@@ -46,7 +49,7 @@ impl ElasticClient {
         Ok(Self { provider })
     }
 
-    pub async fn store(
+    pub async fn store_bulk(
         &self,
         index: &String,
         content: &Vec<Value>,
@@ -71,6 +74,28 @@ impl ElasticClient {
                 .await
                 .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
             return Err(ElasticClientError::BulkRequestError(error_body.to_string()));
+        }
+
+        Ok(())
+    }
+
+    pub async fn store_once(&self, index: &str, content: &Value) -> Result<(), ElasticClientError> {
+        let response = self
+            .provider
+            .index(IndexParts::Index(index))
+            .body(content)
+            .send()
+            .await
+            .map_err(|e| ElasticClientError::TransportError(e.to_string()))?;
+
+        if !response.status_code().is_success() {
+            let error_body: Value = response
+                .json()
+                .await
+                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
+            return Err(ElasticClientError::IndexRequestError(
+                error_body.to_string(),
+            ));
         }
 
         Ok(())

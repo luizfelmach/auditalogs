@@ -14,13 +14,16 @@ services:
       --rpc-http-enabled
       --metrics-enabled
       --host-allowlist="*"
-      --rpc-http-api=ETH,NET,WEB3,DEBUG
+      --rpc-http-api=ETH,NET,WEB3,DEBUG,TXPOOL
       --rpc-ws-enabled
       --data-path=/var/lib/besu
       --rpc-ws-api=ETH,NET,WEB3
       --miner-enabled
       --miner-coinbase="0xfe3b557e8fb62b89f4916b721be55ceb828dbd73"
       --logging=INFO
+      --rpc-http-max-active-connections=100000
+      --min-gas-price=0
+
 
 volumes:
   besudata:

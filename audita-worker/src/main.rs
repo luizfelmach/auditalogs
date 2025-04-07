@@ -2,166 +2,168 @@ mod cli;
 mod config;
 mod elastic_client;
 mod eth_client;
-mod prometheus;
+mod tx_manager;
 mod utils;
 
-use actix_web::{post, web, App, HttpResponse, HttpServer, Responder};
-use clap::Parser;
+use axum::{extract::State, routing::post, Json, Router};
 use elastic_client::ElasticClient;
 use eth_client::EthClient;
-use prometheus::{
-    prometheus_metrics, ELASTIC_ERRORS, ELASTIC_QUEUE, ELASTIC_SUCCESS, ETHEREUM_ERRORS,
-    ETHEREUM_QUEUE, ETHEREUM_SUCCESS, PROCESSING_TIME, WORKER_QUEUE,
-};
-use serde_json::Value;
-use std::{sync::Arc, time::Instant};
-use tokio::sync::mpsc::{self, Receiver, Sender};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+use std::collections::VecDeque;
+use std::sync::Arc;
+use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::{mpsc, Mutex};
+use utils::{fingerprint, generate_index};
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 16)]
-async fn main() -> std::io::Result<()> {
-    let args = cli::Args::parse();
-    let config = config::parse(args.config);
-    println!("{}", config);
+const BATCH_SIZE: usize = 5;
+const BATCH_ETHEREUM: usize = 100;
 
-    let (sender_worker, receiver_worker) = mpsc::channel(config.queue_worker);
-    let (sender_elastic, receiver_elastic) = mpsc::channel(config.queue_elastic);
-    let (sender_ethereum, receiver_ethereum) = mpsc::channel(config.queue_ethereum);
+#[tokio::main]
+async fn main() {
+    let (worker_tx, worker_rx) = mpsc::channel(100);
+    let (elastic_tx, elastic_rx) = mpsc::channel(100);
+    let (ethereum_tx, ethereum_rx) = mpsc::channel(100);
 
-    tokio::spawn(async move {
-        thread_worker(receiver_worker, sender_ethereum, sender_elastic).await;
-    });
-    tokio::spawn(async move {
-        thread_sender_ethereum(receiver_ethereum).await;
-    });
-    tokio::spawn(async move {
-        thread_sender_elastic(receiver_elastic).await;
+    tokio::spawn(task_worker(worker_rx, elastic_tx, ethereum_tx.clone()));
+    tokio::spawn(task_elastic(elastic_rx));
+    tokio::spawn(task_ethereum(ethereum_rx));
+
+    let app_state = Arc::new(AppState {
+        worker_tx: Arc::new(worker_tx),
+        ethereum_tx: Arc::new(ethereum_tx),
     });
 
-    let app = web::Data::new(Arc::new(AppState {
-        sender: sender_worker,
-    }));
+    let app = Router::new()
+        .route("/", post(handle_logs))
+        .route("/eth", post(handle_eth))
+        .with_state(app_state);
 
-    let prometheus = prometheus_metrics();
-
-    HttpServer::new(move || {
-        App::new()
-            .wrap(prometheus.clone())
-            .app_data(app.clone())
-            .service(receive)
-    })
-    .workers(config.dispatchers)
-    .bind(("127.0.0.1", config.port))?
-    .run()
-    .await
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
-struct HashQueueItem {
+struct AppState {
+    worker_tx: Arc<Sender<WorkerChannelItem>>,
+    ethereum_tx: Arc<Sender<EthereumChannelItem>>,
+}
+
+type WorkerChannelItem = Value;
+
+#[derive(Clone, Serialize, Deserialize)]
+struct EthereumChannelItem {
     index: String,
     hash: String,
 }
 
-struct BatchLogsQueueItem {
+struct ElasticChannelItem {
     index: String,
-    content: Vec<Value>,
+    content: Value,
 }
 
-async fn thread_sender_elastic(mut receiver: Receiver<BatchLogsQueueItem>) {
-    let args = cli::Args::parse();
-    let config = config::parse(args.config);
+async fn task_worker(
+    mut worker_rx: Receiver<WorkerChannelItem>,
+    elastic_tx: Sender<ElasticChannelItem>,
+    ethereum_tx: Sender<EthereumChannelItem>,
+) {
+    let mut counter = 0;
+    let mut hash = String::new();
+    let mut index = generate_index(&"worker".into());
 
-    let elastic_client = ElasticClient::new(
-        config.elastic.url,
-        config.elastic.username,
-        config.elastic.password,
-    )
-    .unwrap();
+    while let Some(msg) = worker_rx.recv().await {
+        hash = fingerprint(&hash, &msg.to_string());
+        counter += 1;
 
-    while let Some(msg) = receiver.recv().await {
-        ELASTIC_QUEUE.dec();
-        if !args.disable_elastic {
-            let start_time = Instant::now();
-            let result = elastic_client.store(&msg.index, &msg.content).await;
-            match result {
-                Ok(_) => {
-                    ELASTIC_SUCCESS.inc();
-                    let elapsed_time = start_time.elapsed();
-                    println!("[Sender Elastic]: {} {:?}", msg.index, elapsed_time)
-                }
-                Err(e) => {
-                    ELASTIC_ERRORS.inc();
-                    eprintln!("[Sender Elastic] [Error]: {}", e)
-                }
+        let item = ElasticChannelItem {
+            index: index.clone(),
+            content: msg.clone(),
+        };
+        match elastic_tx.send(item).await {
+            Ok(_) => (),
+            Err(e) => eprintln!("Failed to enqueue message to elastic: {}", e),
+        }
+
+        if counter >= BATCH_SIZE {
+            let item = EthereumChannelItem {
+                index: index.clone(),
+                hash: hash.clone(),
+            };
+            match ethereum_tx.send(item).await {
+                Ok(_) => (),
+                Err(e) => eprintln!("Failed to enqueue message to ethereum: {}", e),
             }
+
+            counter = 0;
+            hash = String::new();
+            index = generate_index(&"worker".into());
         }
     }
 }
 
-async fn thread_sender_ethereum(mut receiver: Receiver<HashQueueItem>) {
-    let args = cli::Args::parse();
-    let config = config::parse(args.config);
+async fn task_elastic(mut elastic_rx: Receiver<ElasticChannelItem>) {
+    let elastic_client = ElasticClient::new(
+        "http://localhost:9200".into(),
+        "elastic".into(),
+        "changeme".into(),
+    )
+    .unwrap();
 
+    while let Some(msg) = elastic_rx.recv().await {
+        println!("ELASTIC: {}  {}", msg.index, msg.content);
+        let result = elastic_client.store_once(&msg.index, &msg.content).await;
+        if let Err(e) = result {
+            eprintln!("[Elastic] [Error]: {}", e)
+        }
+    }
+}
+
+async fn task_ethereum(mut ethereum_rx: Receiver<EthereumChannelItem>) {
     let eth_client = EthClient::new(
-        config.ethereum.url,
-        config.ethereum.contract,
-        config.ethereum.primary_key,
+        "http://localhost:8545".into(),
+        "0x42699A7612A82f1d9C36148af9C77354759b210b".into(),
+        "f4bbe9c1f7371ab4654130f28a77e36c40ba618fc4ece325fac70b7f5965f8bc".into(),
     )
     .await
     .unwrap();
 
-    while let Some(msg) = receiver.recv().await {
-        ETHEREUM_QUEUE.dec();
-        if !args.disable_ethereum {
-            let start_time = Instant::now();
-            let result = eth_client.store(&msg.index, &msg.hash).await;
-            match result {
-                Ok(_) => {
-                    ETHEREUM_SUCCESS.inc();
-                    let elapsed_time = start_time.elapsed();
-                    println!("[Sender Ethereum]: {} {:?}", msg.index, elapsed_time)
-                }
-                Err(e) => {
-                    ETHEREUM_ERRORS.inc();
-                    eprintln!("[Sender Ethereum] [Error]: {}", e)
-                }
-            }
-        }
-    }
-}
+    let eth_client = Arc::new(eth_client);
 
-async fn thread_worker(
-    mut receiver: Receiver<Value>,
-    sender_blockchain: Sender<HashQueueItem>,
-    sender_elastic: Sender<BatchLogsQueueItem>,
-) {
-    let args = cli::Args::parse();
-    let config = config::parse(args.config);
-
+    let nonce_queue = Arc::new(Mutex::new(VecDeque::new()));
+    let mut nonce = eth_client.nonce().await.unwrap();
     let mut buffer = Vec::new();
 
-    while let Some(msg) = receiver.recv().await {
-        WORKER_QUEUE.dec();
+    while let Some(msg) = ethereum_rx.recv().await {
         buffer.push(msg);
+        nonce_queue.lock().await.push_back(nonce);
+        nonce += 1;
 
-        if buffer.len() >= config.batch {
-            let index = utils::generate_index(&config.name);
-            let hash = utils::fingerprint(&buffer);
+        if buffer.len() >= BATCH_ETHEREUM {
+            let mut handles = Vec::new();
+            for tx in buffer.iter() {
+                let nonce_queue_clone = Arc::clone(&nonce_queue);
+                let nonce_tx = nonce_queue.lock().await.pop_front().unwrap();
+                let eth_client_clone = Arc::clone(&eth_client);
+                let tx_clone = tx.clone();
 
-            let item = HashQueueItem {
-                index: index.clone(),
-                hash: hash.clone(),
-            };
-            match sender_blockchain.send(item).await {
-                Ok(_) => ETHEREUM_QUEUE.inc(),
-                Err(e) => eprintln!("Failed to enqueue message to blockchain sender: {}", e),
+                let handle = tokio::spawn(async move {
+                    let result = eth_client_clone
+                        .store(nonce_tx.clone(), &tx_clone.index, &tx_clone.hash)
+                        .await;
+                    match result {
+                        Ok(_) => println!("OK {}", nonce_tx),
+                        Err(e) => {
+                            println!("Aconteceu um erro no nonce {}: {}", nonce_tx, e);
+                            nonce_queue_clone.lock().await.push_front(nonce_tx);
+                        }
+                    }
+                });
+                handles.push(handle);
             }
-
-            let item = BatchLogsQueueItem {
-                index: index.clone(),
-                content: buffer.clone(),
-            };
-            match sender_elastic.send(item).await {
-                Ok(_) => ELASTIC_QUEUE.inc(),
-                Err(e) => eprintln!("Failed to enqueue message to elastic sender: {}", e),
+            for handle in handles {
+                match handle.await {
+                    Ok(_) => (),
+                    Err(_) => (),
+                }
             }
 
             buffer.clear();
@@ -169,19 +171,36 @@ async fn thread_worker(
     }
 }
 
-struct AppState {
-    sender: mpsc::Sender<Value>,
+async fn handle_logs(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<Value>,
+) -> Json<Value> {
+    let received = payload.clone();
+    match state.worker_tx.send(payload).await {
+        Ok(_) => Json(json!({
+            "message": "Data received and being processed.",
+            "received": received
+        })),
+        Err(_) => Json(json!({
+            "message": "Failed to enqueue message",
+            "received": received
+        })),
+    }
 }
 
-#[post("/")]
-async fn receive(app: web::Data<Arc<AppState>>, data: web::Json<Value>) -> impl Responder {
-    let timer = PROCESSING_TIME.start_timer();
-
-    if let Err(_) = app.sender.send(data.clone()).await {
-        timer.observe_duration();
-        return HttpResponse::InternalServerError().body("Failed to enqueue message.");
+async fn handle_eth(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<EthereumChannelItem>,
+) -> Json<Value> {
+    let received = payload.clone();
+    match state.ethereum_tx.send(payload).await {
+        Ok(_) => Json(json!({
+            "message": "Data received and being processed.",
+            "received": received
+        })),
+        Err(_) => Json(json!({
+            "message": "Failed to enqueue message",
+            "received": received
+        })),
     }
-    WORKER_QUEUE.inc();
-    timer.observe_duration();
-    HttpResponse::Ok().body("Data received and being processed.")
 }

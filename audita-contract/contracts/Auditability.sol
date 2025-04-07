@@ -16,7 +16,7 @@ contract Auditability {
         owner = msg.sender;
     }
 
-    function store(string memory index, bytes32 hash) public onlyOwner {
+    function store(string memory index, bytes32 hash) public {
         require(!indices[index].exists, "Index already added.");
 
         indices[index] = IndexData({hash: hash, exists: true});
