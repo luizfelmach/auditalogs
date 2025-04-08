@@ -10,10 +10,10 @@ threads = 12
 url = "http://localhost:8545"
 contract = "0x42699A7612A82f1d9C36148af9C77354759b210b"
 private_key = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
-disable = false
+disable = true
 
 [elastic]
 url = "http://localhost:9200"
 username = "elastic"
 password = "changeme"
-disable = false
+disable = true
