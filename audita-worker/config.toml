@@ -1,0 +1,17 @@
+host = "127.0.0.1"
+port = 8080
+name = "worker"
+queue_size = 1024
+threads = 12
+
+[ethereum]
+url = "http://localhost:8545"
+contract = "0xABCDEF"
+primary_key = "0xKEY"
+disable = false
+
+[elastic]
+url = "http://localhost:9200"
+username = "elastic"
+password = "changeme"
+disable = false

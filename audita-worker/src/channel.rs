@@ -29,8 +29,6 @@ impl ElasticChannelItem {
     }
 }
 
-const CHANNEL_BUFFER: usize = 100;
-
 #[derive(Clone)]
 pub struct TxChannel {
     pub worker: Arc<mpsc::Sender<WorkerChannelItem>>,
@@ -45,10 +43,10 @@ pub struct RxChannel {
     pub elastic: Arc<Mutex<mpsc::Receiver<ElasticChannelItem>>>,
 }
 
-pub fn new() -> (TxChannel, RxChannel) {
-    let (worker_tx, worker_rx) = mpsc::channel(CHANNEL_BUFFER);
-    let (ethereum_tx, ethereum_rx) = mpsc::channel(CHANNEL_BUFFER);
-    let (elastic_tx, elastic_rx) = mpsc::channel(CHANNEL_BUFFER);
+pub fn new(channel_size: usize) -> (TxChannel, RxChannel) {
+    let (worker_tx, worker_rx) = mpsc::channel(channel_size);
+    let (ethereum_tx, ethereum_rx) = mpsc::channel(channel_size);
+    let (elastic_tx, elastic_rx) = mpsc::channel(channel_size);
 
     let shared = TxChannel {
         worker: Arc::new(worker_tx),

@@ -1,9 +1,10 @@
 use crate::{
     channel::{RxChannel, TxChannel},
     client::elastic::ElasticClient,
+    config::AppConfig,
 };
 
-pub async fn elastic(_: TxChannel, rx: RxChannel) {
+pub async fn elastic(config: AppConfig, _: TxChannel, rx: RxChannel) {
     let client = ElasticClient::new(
         "http://localhost:9200".into(),
         "elastic".into(),

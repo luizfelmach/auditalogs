@@ -1,12 +1,13 @@
 use crate::{
     channel::{ElasticChannelItem, EthereumChannelItem, RxChannel, TxChannel},
+    config::AppConfig,
     utils::{elastic_index, fingerprint},
 };
 
 const BATCH_SIZE: usize = 5;
 const WORKER_NAME: &str = "worker";
 
-pub async fn worker(tx: TxChannel, rx: RxChannel) {
+pub async fn worker(config: AppConfig, tx: TxChannel, rx: RxChannel) {
     let mut state = BatchState::new();
 
     while let Some(msg) = rx.worker.lock().await.recv().await {

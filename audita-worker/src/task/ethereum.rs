@@ -1,11 +1,12 @@
 use crate::{
     channel::{EthereumChannelItem, RxChannel, TxChannel},
     client::ethereum::EthereumClient,
+    config::AppConfig,
 };
 
 const BATCH_ETHEREUM: usize = 1;
 
-pub async fn ethereum(_: TxChannel, rx: RxChannel) {
+pub async fn ethereum(config: AppConfig, _: TxChannel, rx: RxChannel) {
     let mut buffer = Vec::new();
 
     while let Some(msg) = rx.ethereum.lock().await.recv().await {
