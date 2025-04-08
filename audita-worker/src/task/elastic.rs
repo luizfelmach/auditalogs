@@ -1,7 +1,19 @@
-use crate::channel::{RxChannel, TxChannel};
+use crate::{
+    channel::{RxChannel, TxChannel},
+    client::elastic::ElasticClient,
+};
 
 pub async fn elastic(_: TxChannel, rx: RxChannel) {
+    let client = ElasticClient::new(
+        "http://localhost:9200".into(),
+        "elastic".into(),
+        "changeme".into(),
+    )
+    .unwrap();
     while let Some(msg) = rx.elastic.lock().await.recv().await {
-        println!("[elastic] received message: {:?}", msg);
+        let value = serde_json::from_str(&msg.content).unwrap();
+        if let Err(e) = client.store(&msg.index, &value).await {
+            eprintln!("[elastic][error]: {}", e)
+        }
     }
 }

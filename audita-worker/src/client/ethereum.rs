@@ -17,15 +17,11 @@ pub enum EthereumClientError {
     InvalidUrl(String),
     #[error("Invalid contract address: {0}")]
     InvalidContractAddress(String),
-    #[error("Failed to decode hex: {0}")]
-    HexDecodeError(String),
     #[error("Transaction send failed: {0}")]
     TransactionSendError(String),
     #[error("Failed to fetch transaction receipt: {0}")]
     ReceiptFetchError(String),
     #[error("Failed to parse transaction hash: {0}")]
-    InvalidTxHash(String),
-    #[error("Transaction receipt not found: {0}")]
     TransactionReceiptNotFound(String),
 }
 

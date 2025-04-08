@@ -17,6 +17,18 @@ pub struct ElasticChannelItem {
     pub content: String,
 }
 
+impl EthereumChannelItem {
+    pub fn new(index: String, hash: FixedBytes<32>) -> Self {
+        Self { index, hash }
+    }
+}
+
+impl ElasticChannelItem {
+    pub fn new(index: String, content: String) -> Self {
+        Self { index, content }
+    }
+}
+
 const CHANNEL_BUFFER: usize = 100;
 
 #[derive(Clone)]

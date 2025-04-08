@@ -1,5 +1,5 @@
 use chrono::Utc;
-use rand::Rng;
+use rand::{distributions::Alphanumeric, Rng};
 use sha2::{Digest, Sha256};
 
 pub fn fingerprint(first: &String, second: &String) -> String {
@@ -9,12 +9,12 @@ pub fn fingerprint(first: &String, second: &String) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-pub fn generate_index(name: &String) -> String {
+pub fn elastic_index(name: &String) -> String {
     let current_time = Utc::now().format("%Y-%m-%d_%H-%M-%S").to_string();
     let random_string: String = rand::thread_rng()
-        .sample_iter(&rand::distributions::Alphanumeric)
+        .sample_iter(&Alphanumeric)
         .take(8)
         .map(char::from)
         .collect();
-    format!("{}-{}-{}", current_time, name, random_string).to_lowercase()
+    format!("{current_time}-{name}-{random_string}").to_lowercase()
 }

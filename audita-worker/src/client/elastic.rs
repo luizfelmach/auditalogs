@@ -15,9 +15,6 @@ pub enum ElasticClientError {
     #[error("Transport creation failed: {0}")]
     TransportError(String),
 
-    #[error("Bulk request failed: {0}")]
-    BulkRequestError(String),
-
     #[error("Response JSON parsing failed: {0}")]
     ResponseParseError(String),
 
