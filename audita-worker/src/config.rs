@@ -1,5 +1,8 @@
-use config::{Config, ConfigError, Environment, File};
 use serde::Deserialize;
+use std::error::Error;
+use std::fs::File;
+use std::io::Read;
+use toml;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AppConfig {
@@ -7,6 +10,7 @@ pub struct AppConfig {
     pub port: u16,
     pub name: String,
     pub queue_size: usize,
+    pub batch_size: usize,
     pub threads: usize,
     pub ethereum: EthereumConfig,
     pub elastic: ElasticConfig,
@@ -29,11 +33,27 @@ pub struct ElasticConfig {
 }
 
 impl AppConfig {
-    pub fn load() -> Result<Self, ConfigError> {
-        Config::builder()
-            .add_source(File::with_name("config").required(false))
-            .add_source(Environment::default().separator("_"))
-            .build()?
-            .try_deserialize()
+    pub fn from_file(path: &str) -> Result<Self, Box<dyn Error>> {
+        let mut file =
+            File::open(&path).map_err(|e| format!("Failed to open config file: {}", e))?;
+
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .map_err(|e| format!("Failed to read config file: {}", e))?;
+
+        let config = toml::from_str(&contents)
+            .map_err(|err| format!("Failed to parse TOML config: {}", err))?;
+
+        Ok(config)
+    }
+
+    pub fn load(path: &str) -> AppConfig {
+        match AppConfig::from_file(path) {
+            Ok(config) => config,
+            Err(err) => {
+                eprintln!("Error reading config file: {err}");
+                std::process::exit(1);
+            }
+        }
     }
 }

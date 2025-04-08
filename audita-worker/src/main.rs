@@ -9,9 +9,7 @@ use config::AppConfig;
 use tokio::{net, runtime::Builder};
 
 fn main() {
-    dotenvy::dotenv().ok();
-
-    let config = AppConfig::load().expect("Erro carregando configuração");
+    let config = AppConfig::load("Config.toml");
     println!("{:#?}", config);
 
     let runtime = Builder::new_multi_thread()

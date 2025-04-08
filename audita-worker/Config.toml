@@ -1,13 +1,14 @@
-host = "127.0.0.1"
-port = 8080
+host = "0.0.0.0"
+port = 8888
 name = "worker"
-queue_size = 1024
+queue_size = 2048
+batch_size = 500
 threads = 12
 
 [ethereum]
 url = "http://localhost:8545"
-contract = "0xABCDEF"
-primary_key = "0xKEY"
+contract = ""
+primary_key = ""
 disable = false
 
 [elastic]
