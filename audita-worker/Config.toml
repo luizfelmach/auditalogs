@@ -1,14 +1,15 @@
 host = "0.0.0.0"
-port = 8888
+port = 8080
 name = "worker"
 queue_size = 2048
 batch_size = 500
+ethereum_batch_size = 100
 threads = 12
 
 [ethereum]
 url = "http://localhost:8545"
-contract = ""
-primary_key = ""
+contract = "0x42699A7612A82f1d9C36148af9C77354759b210b"
+private_key = "0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63"
 disable = false
 
 [elastic]

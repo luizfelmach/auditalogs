@@ -11,6 +11,7 @@ pub struct AppConfig {
     pub name: String,
     pub queue_size: usize,
     pub batch_size: usize,
+    pub ethereum_batch_size: usize,
     pub threads: usize,
     pub ethereum: EthereumConfig,
     pub elastic: ElasticConfig,
@@ -20,7 +21,7 @@ pub struct AppConfig {
 pub struct EthereumConfig {
     pub url: String,
     pub contract: String,
-    pub primary_key: String,
+    pub private_key: String,
     pub disable: bool,
 }
 

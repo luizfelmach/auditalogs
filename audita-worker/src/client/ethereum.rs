@@ -33,11 +33,7 @@ pub struct EthereumClient {
 }
 
 impl EthereumClient {
-    pub async fn new(
-        url: String,
-        contract: String,
-        pk: String,
-    ) -> Result<Self, EthereumClientError> {
+    pub fn new(url: String, contract: String, pk: String) -> Result<Self, EthereumClientError> {
         let signer: PrivateKeySigner = pk
             .parse()
             .map_err(|_| EthereumClientError::InvalidPrivateKey(pk.clone()))?;
