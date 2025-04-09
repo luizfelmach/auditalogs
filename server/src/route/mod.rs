@@ -10,4 +10,5 @@ pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
         .merge(logs::create_router(Arc::clone(&state)))
         .merge(ethereum::create_router(Arc::clone(&state)))
+        .merge(elastic::create_router(Arc::clone(&state)))
 }

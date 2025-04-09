@@ -2,9 +2,9 @@ use elasticsearch::{
     auth::Credentials,
     cert::CertificateValidation,
     http::transport::{SingleNodeConnectionPool, Transport, TransportBuilder},
-    Elasticsearch, IndexParts,
+    Elasticsearch, IndexParts, ScrollParts, SearchParts,
 };
-use serde_json::Value;
+use serde_json::{json, Value};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -80,67 +80,67 @@ impl ElasticClient {
         Ok(())
     }
 
-    // pub async fn retrieve(&self, index: &str) -> Result<Vec<Value>, ElasticClientError> {
-    //     let mut docs = Vec::new();
+    pub async fn retrieve(&self, index: &str) -> Result<Vec<Value>, ElasticClientError> {
+        let mut docs = Vec::new();
 
-    //     let response = self
-    //         .client
-    //         .search(SearchParts::Index(&[index]))
-    //         .scroll("1m")
-    //         .body(json!({ "query": { "match_all": {} } }))
-    //         .send()
-    //         .await
-    //         .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
+        let response = self
+            .client
+            .search(SearchParts::Index(&[index]))
+            .scroll("1m")
+            .body(json!({ "query": { "match_all": {} } }))
+            .send()
+            .await
+            .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
 
-    //     let response_body = response
-    //         .json::<Value>()
-    //         .await
-    //         .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
+        let response_body = response
+            .json::<Value>()
+            .await
+            .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
 
-    //     let mut scroll_id = response_body["_scroll_id"]
-    //         .as_str()
-    //         .ok_or_else(|| {
-    //             ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
-    //         })?
-    //         .to_string();
+        let mut scroll_id = response_body["_scroll_id"]
+            .as_str()
+            .ok_or_else(|| {
+                ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
+            })?
+            .to_string();
 
-    //     if let Some(hits) = response_body["hits"]["hits"].as_array() {
-    //         docs.extend(hits.clone());
-    //     }
+        if let Some(hits) = response_body["hits"]["hits"].as_array() {
+            docs.extend(hits.clone());
+        }
 
-    //     loop {
-    //         let scroll_response = self
-    //             .client
-    //             .scroll(ScrollParts::None)
-    //             .scroll("1m")
-    //             .body(json!({ "scroll_id": scroll_id }))
-    //             .send()
-    //             .await
-    //             .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
+        loop {
+            let scroll_response = self
+                .client
+                .scroll(ScrollParts::None)
+                .scroll("1m")
+                .body(json!({ "scroll_id": scroll_id }))
+                .send()
+                .await
+                .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
 
-    //         let scroll_body = scroll_response
-    //             .json::<Value>()
-    //             .await
-    //             .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
+            let scroll_body = scroll_response
+                .json::<Value>()
+                .await
+                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
 
-    //         let hits = scroll_body["hits"]["hits"].as_array().ok_or_else(|| {
-    //             ElasticClientError::ResponseParseError("Missing hits".to_string())
-    //         })?;
+            let hits = scroll_body["hits"]["hits"].as_array().ok_or_else(|| {
+                ElasticClientError::ResponseParseError("Missing hits".to_string())
+            })?;
 
-    //         if hits.is_empty() {
-    //             break;
-    //         }
+            if hits.is_empty() {
+                break;
+            }
 
-    //         docs.extend(hits.clone());
+            docs.extend(hits.clone());
 
-    //         scroll_id = scroll_body["_scroll_id"]
-    //             .as_str()
-    //             .ok_or_else(|| {
-    //                 ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
-    //             })?
-    //             .to_string();
-    //     }
+            scroll_id = scroll_body["_scroll_id"]
+                .as_str()
+                .ok_or_else(|| {
+                    ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
+                })?
+                .to_string();
+        }
 
-    //     Ok(docs)
-    // }
+        Ok(docs)
+    }
 }
