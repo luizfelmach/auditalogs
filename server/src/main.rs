@@ -1,18 +1,19 @@
 mod channel;
 mod client;
 mod config;
+mod log;
 mod route;
 mod state;
 mod task;
 mod utils;
 
 use state::AppState;
-use std::{env, process, sync::Arc};
-use tokio::{net, runtime::Builder};
-use tracing::{debug, error, info};
+use std::{process, sync::Arc};
+use tokio::runtime::Builder;
+use tracing::{debug, error, info, warn};
 
 fn main() {
-    setup_logger();
+    log::setup();
 
     info!("Starting application");
 
@@ -34,43 +35,24 @@ fn main() {
         process::exit(1);
     };
 
-    runtime.block_on(server(state));
+    runtime.block_on(app(state));
 }
 
-async fn server(state: Arc<AppState>) {
-    info!("Starting server");
+async fn app(state: Arc<AppState>) {
+    debug!("Starting tasks: worker, ethereum, elastic, and server");
 
-    tokio::spawn(task::worker(Arc::clone(&state)));
-    info!("Spawned worker task");
-
-    tokio::spawn(task::ethereum(Arc::clone(&state)));
-    info!("Spawned ethereum task");
-
-    tokio::spawn(task::elastic(Arc::clone(&state)));
-    info!("Spawned elastic task");
-
-    let app = route::create_router(Arc::clone(&state));
-    let url = format!("{}:{}", state.config.host, state.config.port);
-    let bind = net::TcpListener::bind(&url).await;
-
-    let Ok(listener) = bind else {
-        error!("Failed to bind to {}: {:?}", url, bind);
-        process::exit(1);
-    };
-
-    info!("Server listening on {}", url);
-
-    match axum::serve(listener, app).await {
-        Ok(_) => info!("Server terminated gracefully"),
-        Err(err) => error!("Server encountered an error during execution: {:?}", err),
+    tokio::select! {
+        () = task::worker(Arc::clone(&state)) => {
+            warn!("Worker task exited unexpectedly. Shutting down application.");
+        },
+        () = task::ethereum(Arc::clone(&state)) => {
+            warn!("Ethereum task exited unexpectedly. Shutting down application.");
+        },
+        () = task::elastic(Arc::clone(&state)) => {
+            warn!("Elastic task exited unexpectedly. Shutting down application.");
+        },
+        () = task::server(Arc::clone(&state)) => {
+            warn!("Server task exited unexpectedly. Shutting down application.");
+        },
     }
-}
-
-fn setup_logger() {
-    let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
-    env::set_var(
-        "RUST_LOG",
-        format!("{},alloy=error,hyper=error,reqwest=error,axum=error", level),
-    );
-    tracing_subscriber::fmt::init();
 }
