@@ -1,3 +1,6 @@
+use std::process;
+use tracing::error;
+
 use crate::{
     channel::{self, RxChannel, TxChannel},
     client::{elastic::ElasticClient, ethereum::EthereumClient},
@@ -19,19 +22,27 @@ impl AppState {
 
         let (tx, rx) = channel::new(config.queue_size);
 
-        let elastic = ElasticClient::new(
+        let result = ElasticClient::new(
             config.elastic.url.clone(),
             config.elastic.username.clone(),
             config.elastic.password.clone(),
-        )
-        .unwrap();
+        );
+
+        let Ok(elastic) = result else {
+            error!("Could not create elastic client");
+            process::exit(1);
+        };
 
         let ethereum = EthereumClient::new(
             config.ethereum.url.clone(),
             config.ethereum.contract.clone(),
             config.ethereum.private_key.clone(),
-        )
-        .unwrap();
+        );
+
+        let Ok(ethereum) = ethereum else {
+            error!("Could not create ethereum client");
+            process::exit(1);
+        };
 
         return Self {
             config,

@@ -1,5 +1,6 @@
 use crate::state::AppState;
 use std::sync::Arc;
+use tracing::{error, info, warn};
 
 pub async fn ethereum(state: Arc<AppState>) {
     let config = state.config.clone();
@@ -8,7 +9,7 @@ pub async fn ethereum(state: Arc<AppState>) {
     let client = state.ethereum.clone();
 
     if ethereum.disable {
-        log::warn!("Module is disabled. Skipping messages from channel");
+        warn!("Module is disabled. Skipping messages from channel");
     }
 
     let mut buffer = Vec::new();
@@ -24,7 +25,7 @@ pub async fn ethereum(state: Arc<AppState>) {
             let mut nonce = match client.nonce().await {
                 Ok(n) => n,
                 Err(err) => {
-                    log::error!("Failed to fetch nonce: {:?}", err);
+                    error!("Failed to fetch nonce: {:?}", err);
                     continue;
                 }
             };
@@ -35,7 +36,7 @@ pub async fn ethereum(state: Arc<AppState>) {
                 match client.send_tx(nonce, &content.index, content.hash, 3).await {
                     Ok(tx_hash) => txs.push((nonce, tx_hash)),
                     Err(err) => {
-                        log::error!("Failed to send tx (nonce {}): {:?}", nonce, err);
+                        error!("Failed to send tx (nonce {}): {:?}", nonce, err);
                     }
                 }
                 nonce += 1;
@@ -45,9 +46,9 @@ pub async fn ethereum(state: Arc<AppState>) {
                 match client.wait_for_tx(*tx_hash).await {
                     Ok(_) => (),
                     Err(err) => {
-                        log::warn!("Tx ({}) {} failed: {:?}", tx_nonce, tx_hash, err);
+                        warn!("Tx ({}) {} failed: {:?}", tx_nonce, tx_hash, err);
                         if let Err(e) = client.remove_tx(*tx_nonce).await {
-                            log::error!("Failed to remove tx {}: {:?}", tx_nonce, e);
+                            error!("Failed to remove tx {}: {:?}", tx_nonce, e);
                         }
                     }
                 }
@@ -56,5 +57,5 @@ pub async fn ethereum(state: Arc<AppState>) {
             buffer.clear();
         }
     }
-    log::info!("Ethereum channel closed. Exiting ethereum task");
+    info!("Ethereum channel closed. Exiting ethereum task");
 }
