@@ -7,7 +7,7 @@ mod task;
 mod utils;
 
 use state::AppState;
-use std::sync::Arc;
+use std::{process, sync::Arc};
 use tokio::{net, runtime::Builder};
 
 fn main() {
@@ -44,20 +44,15 @@ async fn server(state: Arc<AppState>) {
     log::info!("Spawned elastic task");
 
     let app = route::create_router(Arc::clone(&state));
+    let url = format!("{}:{}", state.config.host, state.config.port);
+    let bind = net::TcpListener::bind(&url).await;
 
-    let host = state.config.host.clone();
-    let port = state.config.port.clone();
-
-    let listener = match net::TcpListener::bind((host.clone(), port.clone())).await {
-        Ok(listener) => listener,
-        Err(err) => {
-            let endpoint = format!("{}:{}", host, port);
-            log::error!("Failed to bind to {}: {:?}", endpoint, err);
-            return;
-        }
+    let Ok(listener) = bind else {
+        log::error!("Failed to bind to {}: {:?}", url, bind);
+        process::exit(1);
     };
 
-    log::info!("Server listening on {}:{}", host, port);
+    log::info!("Server listening on {}", url);
 
     match axum::serve(listener, app).await {
         Ok(_) => log::info!("Server terminated gracefully"),
