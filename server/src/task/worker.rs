@@ -1,10 +1,15 @@
+use std::sync::Arc;
+
 use crate::{
-    channel::{ElasticChannelItem, EthereumChannelItem, RxChannel, TxChannel},
-    config::AppConfig,
+    channel::{ElasticChannelItem, EthereumChannelItem},
+    state::AppState,
     utils::{elastic_index, fingerprint},
 };
 
-pub async fn worker(config: AppConfig, tx: TxChannel, rx: RxChannel) {
+pub async fn worker(state: Arc<AppState>) {
+    let config = state.config.clone();
+    let rx = state.rx.clone();
+    let tx = state.tx.clone();
     let mut counter = 0;
     let mut hash = String::new();
     let mut index = elastic_index(&config.name);

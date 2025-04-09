@@ -1,14 +1,11 @@
-use crate::{
-    channel::{RxChannel, TxChannel},
-    client::ethereum::EthereumClient,
-    config::AppConfig,
-};
+use crate::state::AppState;
+use std::sync::Arc;
 
-pub async fn ethereum(config: AppConfig, _: TxChannel, rx: RxChannel) {
+pub async fn ethereum(state: Arc<AppState>) {
+    let config = state.config.clone();
+    let rx = state.rx.clone();
     let ethereum = config.ethereum;
-
-    let client =
-        EthereumClient::new(ethereum.url, ethereum.contract, ethereum.private_key).unwrap();
+    let client = state.ethereum.clone();
 
     if ethereum.disable {
         log::warn!("Module is disabled. Skipping messages from channel");

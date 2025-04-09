@@ -2,10 +2,12 @@ mod channel;
 mod client;
 mod config;
 mod route;
+mod state;
 mod task;
 mod utils;
 
-use config::AppConfig;
+use state::AppState;
+use std::sync::Arc;
 use tokio::{net, runtime::Builder};
 
 fn main() {
@@ -13,47 +15,49 @@ fn main() {
 
     log::info!("Starting application");
 
-    let config = AppConfig::load("Config.toml");
+    let state = AppState::new();
+    let state = Arc::new(state);
 
     log::info!("Configuration loaded from Config.toml");
 
     let runtime = Builder::new_multi_thread()
-        .worker_threads(config.threads)
+        .worker_threads(state.config.threads)
         .enable_all()
         .build()
         .expect("Failed to build runtime");
 
-    log::info!("Runtime built with {} worker threads", config.threads);
+    log::info!("Runtime built with {} worker threads", state.config.threads);
 
-    runtime.block_on(server(config));
+    runtime.block_on(server(state));
 }
 
-async fn server(config: AppConfig) {
+async fn server(state: Arc<AppState>) {
     log::info!("Server starting");
 
-    let (tx, rx) = channel::new(config.queue_size);
-
-    tokio::spawn(task::worker(config.clone(), tx.clone(), rx.clone()));
+    tokio::spawn(task::worker(Arc::clone(&state)));
     log::info!("Spawned worker task");
 
-    tokio::spawn(task::ethereum(config.clone(), tx.clone(), rx.clone()));
+    tokio::spawn(task::ethereum(Arc::clone(&state)));
     log::info!("Spawned ethereum task");
 
-    tokio::spawn(task::elastic(config.clone(), tx.clone(), rx.clone()));
+    tokio::spawn(task::elastic(Arc::clone(&state)));
     log::info!("Spawned elastic task");
 
-    let app = route::create_router(tx.clone());
+    let app = route::create_router(Arc::clone(&state));
 
-    let listener = match net::TcpListener::bind((config.host.clone(), config.port.clone())).await {
+    let host = state.config.host.clone();
+    let port = state.config.port.clone();
+
+    let listener = match net::TcpListener::bind((host.clone(), port.clone())).await {
         Ok(listener) => listener,
         Err(err) => {
-            let endpoint = format!("{}:{}", config.host, config.port);
+            let endpoint = format!("{}:{}", host, port);
             log::error!("Failed to bind to {}: {:?}", endpoint, err);
             return;
         }
     };
 
-    log::info!("Server listening on {}:{}", config.host, config.port);
+    log::info!("Server listening on {}:{}", host, port);
 
     match axum::serve(listener, app).await {
         Ok(_) => log::info!("Server terminated gracefully"),

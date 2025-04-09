@@ -2,12 +2,12 @@ pub mod elastic;
 pub mod ethereum;
 pub mod logs;
 
-use crate::channel::TxChannel;
+use crate::state::AppState;
 use axum::Router;
 use std::sync::Arc;
 
-pub fn create_router(tx: TxChannel) -> Router {
+pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
-        .merge(logs::create_router(Arc::new(tx.clone())))
-        .merge(ethereum::create_router(Arc::new(tx.clone())))
+        .merge(logs::create_router(Arc::clone(&state)))
+        .merge(ethereum::create_router(Arc::clone(&state)))
 }

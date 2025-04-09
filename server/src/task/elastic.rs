@@ -1,12 +1,11 @@
-use crate::{
-    channel::{RxChannel, TxChannel},
-    client::elastic::ElasticClient,
-    config::AppConfig,
-};
+use crate::state::AppState;
+use std::sync::Arc;
 
-pub async fn elastic(config: AppConfig, _: TxChannel, rx: RxChannel) {
+pub async fn elastic(state: Arc<AppState>) {
+    let config = state.config.clone();
+    let rx = state.rx.clone();
     let elastic = config.elastic;
-    let client = ElasticClient::new(elastic.url, elastic.username, elastic.password).unwrap();
+    let client = state.elastic.clone();
 
     if elastic.disable {
         log::warn!("Module is disabled. Skipping messages from channel.");
