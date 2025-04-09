@@ -12,7 +12,7 @@ use tokio::{net, runtime::Builder};
 use tracing::{debug, error, info};
 
 fn main() {
-    logging();
+    setup_logger();
 
     info!("Starting application");
 
@@ -66,7 +66,7 @@ async fn server(state: Arc<AppState>) {
     }
 }
 
-fn logging() {
+fn setup_logger() {
     let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
     env::set_var(
         "RUST_LOG",
