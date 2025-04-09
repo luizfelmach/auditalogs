@@ -2,6 +2,7 @@ use crate::state::AppState;
 use axum::{extract::State, routing::post, Json, Router};
 use serde_json::{json, Value};
 use std::sync::Arc;
+use tracing::error;
 
 pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
@@ -14,14 +15,17 @@ async fn handle_logs(
     Json(payload): Json<Value>,
 ) -> Json<Value> {
     let received = payload.clone();
-    match state.tx.worker.send(payload.to_string()).await {
-        Ok(_) => Json(json!({
-            "message": "Data received and being processed.",
-            "received": received
-        })),
-        Err(_) => Json(json!({
+
+    if let Err(err) = state.tx.worker.send(payload.to_string()).await {
+        error!("failed to enqueue message to worker: {}", err);
+        return Json(json!({
             "message": "Failed to enqueue message",
-            "received": received
-        })),
+            "received": received,
+        }));
     }
+
+    return Json(json!({
+        "message": "Data received and being processed.",
+        "received": received
+    }));
 }

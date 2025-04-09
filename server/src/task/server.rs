@@ -9,14 +9,14 @@ pub async fn server(state: Arc<AppState>) {
     let bind = net::TcpListener::bind(&url).await;
 
     let Ok(listener) = bind else {
-        error!("Failed to bind to {}: {:?}", url, bind);
+        error!("failed to bind to {}: {:?}", url, bind);
         process::exit(1)
     };
 
-    info!("Server listening on {}", url);
+    info!("server listening on {}", url);
 
     match axum::serve(listener, app).await {
-        Ok(_) => info!("Server terminated gracefully"),
-        Err(err) => error!("Server encountered an error during execution: {:?}", err),
+        Ok(_) => info!("server terminated gracefully"),
+        Err(err) => error!("server encountered an error during execution: {:?}", err),
     }
 }

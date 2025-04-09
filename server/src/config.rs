@@ -32,29 +32,13 @@ pub struct ElasticConfig {
     pub password: String,
     pub disable: bool,
 }
-
 impl AppConfig {
-    pub fn from_file(path: &str) -> Result<Self, Box<dyn Error>> {
-        let mut file =
-            File::open(&path).map_err(|e| format!("Failed to open config file: {}", e))?;
-
+    pub fn load(path: String) -> Result<Self, Box<dyn Error>> {
+        let mut file = File::open(&path)?;
         let mut contents = String::new();
-        file.read_to_string(&mut contents)
-            .map_err(|e| format!("Failed to read config file: {}", e))?;
-
-        let config = toml::from_str(&contents)
-            .map_err(|err| format!("Failed to parse TOML config: {}", err))?;
+        file.read_to_string(&mut contents)?;
+        let config = toml::from_str(&contents)?;
 
         Ok(config)
-    }
-
-    pub fn load(path: &str) -> AppConfig {
-        match AppConfig::from_file(path) {
-            Ok(config) => config,
-            Err(err) => {
-                eprintln!("Error reading config file: {err}");
-                std::process::exit(1);
-            }
-        }
     }
 }

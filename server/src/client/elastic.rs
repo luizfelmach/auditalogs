@@ -22,7 +22,7 @@ pub enum ElasticClientError {
     IndexRequestError(String),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct ElasticClient {
     client: Elasticsearch,
 }

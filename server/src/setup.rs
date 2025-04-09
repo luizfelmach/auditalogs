@@ -1,14 +1,12 @@
-use std::{env, process, sync::Arc};
-
-use tokio::runtime::{Builder, Runtime};
-use tracing::{debug, error};
-
 use crate::{
     channel,
     client::{elastic::ElasticClient, ethereum::EthereumClient},
     config::AppConfig,
     state::AppState,
 };
+use std::{env, process, sync::Arc};
+use tokio::runtime::{Builder, Runtime};
+use tracing::{debug, error};
 
 pub fn log() {
     let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
@@ -39,18 +37,22 @@ pub fn runtime(threads: usize) -> Runtime {
 }
 
 pub fn state() -> Arc<AppState> {
-    let config = AppConfig::load("Config.toml");
+    let config = AppConfig::load("Config.toml".into());
+    let Ok(config) = config else {
+        error!("error reading config file: {:?}", config);
+        process::exit(1);
+    };
 
     let (tx, rx) = channel::new(config.queue_size);
 
-    let result = ElasticClient::new(
+    let elastic = ElasticClient::new(
         config.elastic.url.clone(),
         config.elastic.username.clone(),
         config.elastic.password.clone(),
     );
 
-    let Ok(elastic) = result else {
-        error!("Could not create elastic client");
+    let Ok(elastic) = elastic else {
+        error!("error creating elastic client: {:?}", elastic);
         process::exit(1);
     };
 
@@ -61,7 +63,7 @@ pub fn state() -> Arc<AppState> {
     );
 
     let Ok(ethereum) = ethereum else {
-        error!("Could not create ethereum client");
+        error!("error creating ethereum client: {:?}", ethereum);
         process::exit(1);
     };
 
