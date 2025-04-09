@@ -6,8 +6,13 @@ use crate::{
 
 pub async fn ethereum(config: AppConfig, _: TxChannel, rx: RxChannel) {
     let ethereum = config.ethereum;
+
     let client =
         EthereumClient::new(ethereum.url, ethereum.contract, ethereum.private_key).unwrap();
+
+    if ethereum.disable {
+        log::warn!("Module is disabled. Skipping messages from channel");
+    }
 
     let mut buffer = Vec::new();
 
@@ -17,32 +22,42 @@ pub async fn ethereum(config: AppConfig, _: TxChannel, rx: RxChannel) {
         }
 
         buffer.push(msg);
+
         if buffer.len() >= config.ethereum_batch_size {
-            let mut nonce = client.nonce().await.unwrap();
+            let mut nonce = match client.nonce().await {
+                Ok(n) => n,
+                Err(err) => {
+                    log::error!("Failed to fetch nonce: {:?}", err);
+                    continue;
+                }
+            };
+
             let mut txs = Vec::new();
 
             for content in buffer.iter() {
-                let result = client.send_tx(nonce, &content.index, content.hash, 3).await;
-                if let Ok(tx_hash) = result {
-                    txs.push((nonce, tx_hash));
+                match client.send_tx(nonce, &content.index, content.hash, 3).await {
+                    Ok(tx_hash) => txs.push((nonce, tx_hash)),
+                    Err(err) => {
+                        log::error!("Failed to send tx (nonce {}): {:?}", nonce, err);
+                    }
                 }
                 nonce += 1;
             }
 
-            let mut ok = 0;
-
-            for (tx_nonce, tx_hash) in txs.iter() {
-                let result = client.wait_for_tx(*tx_hash).await;
-                match result {
-                    Ok(_) => ok += 1,
-                    Err(_) => {
-                        client.remove_tx(*tx_nonce).await.unwrap();
+            for (tx_nonce, tx_hash) in &txs {
+                match client.wait_for_tx(*tx_hash).await {
+                    Ok(_) => (),
+                    Err(err) => {
+                        log::warn!("Tx ({}) {} failed: {:?}", tx_nonce, tx_hash, err);
+                        if let Err(e) = client.remove_tx(*tx_nonce).await {
+                            log::error!("Failed to remove tx {}: {:?}", tx_nonce, e);
+                        }
                     }
                 }
             }
 
-            println!("Processed {} with {} success txs!", buffer.len(), ok);
             buffer.clear();
         }
     }
+    log::info!("Ethereum channel closed. Exiting ethereum task");
 }

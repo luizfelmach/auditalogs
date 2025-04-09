@@ -15,17 +15,18 @@ pub async fn worker(config: AppConfig, tx: TxChannel, rx: RxChannel) {
 
         let item = ElasticChannelItem::new(index.clone(), msg.clone());
         if let Err(err) = tx.elastic.send(item).await {
-            eprintln!("Failed to enqueue message to elastic: {err}");
+            log::error!("Failed to send message to elastic channel: {:?}", err);
         }
 
         if counter >= config.batch_size {
             let item = EthereumChannelItem::new(index.clone(), hash.clone().parse().unwrap());
             if let Err(err) = tx.ethereum.send(item).await {
-                eprintln!("Failed to enqueue message to ethereum: {err}")
+                log::error!("Failed to send message to ethereum channel: {:?}", err);
             }
             counter = 0;
             hash.clear();
             index = elastic_index(&config.name);
         }
     }
+    log::info!("Worker channel closed. Exiting worker task");
 }

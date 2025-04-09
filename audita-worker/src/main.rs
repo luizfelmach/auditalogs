@@ -33,8 +33,6 @@ async fn server(config: AppConfig) {
 
     let (tx, rx) = channel::new(config.queue_size);
 
-    log::debug!("Channels created with queue size {}", config.queue_size);
-
     tokio::spawn(task::worker(config.clone(), tx.clone(), rx.clone()));
     log::info!("Spawned worker task");
 
@@ -45,7 +43,6 @@ async fn server(config: AppConfig) {
     log::info!("Spawned elastic task");
 
     let app = route::create_router(tx.clone());
-    log::debug!("Router created");
 
     let listener = match net::TcpListener::bind((config.host.clone(), config.port.clone())).await {
         Ok(listener) => listener,
