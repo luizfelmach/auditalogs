@@ -44,7 +44,7 @@ pub async fn ethereum(state: Arc<AppState>) {
             for content in buffer.iter() {
                 trace!(current_nonce = nonce, index = ?content.index, hash = ?content.hash,
                        "sending transaction");
-                match client.send_tx(nonce, &content.index, content.hash, 3).await {
+                match client.send_tx(nonce, &content.index, content.hash).await {
                     Ok(tx_hash) => txs.push((nonce, tx_hash)),
                     Err(err) => {
                         error!(nonce = nonce, error = ?err, "failed to send tx");
@@ -59,7 +59,7 @@ pub async fn ethereum(state: Arc<AppState>) {
             );
             for (tx_nonce, tx_hash) in &txs {
                 trace!(tx_nonce = tx_nonce, tx_hash = ?tx_hash, "waiting for tx confirmation");
-                match client.wait_for_tx(*tx_hash).await {
+                match client.wait_tx(*tx_hash).await {
                     Ok(_) => (),
                     Err(err) => {
                         warn!(tx_nonce = tx_nonce, tx_hash = ?tx_hash, error = ?err, "tx failed");
