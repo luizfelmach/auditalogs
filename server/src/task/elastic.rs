@@ -8,10 +8,6 @@ pub async fn elastic(state: Arc<AppState>) {
     let elastic = config.elastic;
     let client = state.elastic.clone();
 
-    if elastic.disable {
-        warn!("Module is disabled. Skipping messages from channel.");
-    }
-
     while let Some(msg) = rx.elastic.lock().await.recv().await {
         if elastic.disable {
             continue;
@@ -29,5 +25,4 @@ pub async fn elastic(state: Arc<AppState>) {
             error!("Failed to store document: {:?}", err);
         }
     }
-    warn!("Elastic channel closed. Exiting elastic task");
 }

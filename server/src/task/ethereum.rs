@@ -1,16 +1,12 @@
 use crate::state::AppState;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{error, warn};
 
 pub async fn ethereum(state: Arc<AppState>) {
     let config = state.config.clone();
     let rx = state.rx.clone();
     let ethereum = config.ethereum;
     let client = state.ethereum.clone();
-
-    if ethereum.disable {
-        warn!("Module is disabled. Skipping messages from channel");
-    }
 
     let mut buffer = Vec::new();
 
@@ -57,5 +53,4 @@ pub async fn ethereum(state: Arc<AppState>) {
             buffer.clear();
         }
     }
-    info!("Ethereum channel closed. Exiting ethereum task");
 }

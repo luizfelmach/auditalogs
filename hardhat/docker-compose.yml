@@ -23,6 +23,7 @@ services:
       --logging=INFO
       --rpc-http-max-active-connections=100000
       --min-gas-price=0
+      --tx-pool-max-future-by-sender=1024
 
 
 volumes:
