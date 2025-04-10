@@ -2,10 +2,12 @@ use elasticsearch::{
     auth::Credentials,
     cert::CertificateValidation,
     http::transport::{SingleNodeConnectionPool, Transport, TransportBuilder},
-    Elasticsearch, IndexParts, ScrollParts, SearchParts,
+    BulkOperation, BulkParts, Elasticsearch, IndexParts, ScrollParts, SearchParts,
 };
 use serde_json::{json, Value};
 use thiserror::Error;
+
+use crate::channel::ElasticChannelItem;
 
 #[derive(Debug, Error)]
 pub enum ElasticClientError {
@@ -20,6 +22,9 @@ pub enum ElasticClientError {
 
     #[error("Indexing failed: {0}")]
     IndexRequestError(String),
+
+    #[error("Bulk request failed: {0}")]
+    BulkRequestError(String),
 }
 
 #[derive(Debug, Clone)]
@@ -75,6 +80,41 @@ impl ElasticClient {
             return Err(ElasticClientError::IndexRequestError(
                 error_body.to_string(),
             ));
+        }
+
+        Ok(())
+    }
+
+    pub async fn store_bulk(
+        &self,
+        items: Vec<ElasticChannelItem>,
+    ) -> Result<(), ElasticClientError> {
+        if items.is_empty() {
+            return Ok(());
+        }
+        let mut ops: Vec<BulkOperation<Value>> = Vec::new();
+
+        for item in items.iter() {
+            let content = serde_json::from_str::<Value>(&item.content)
+                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
+            let op = BulkOperation::create(content).index(item.index.clone());
+            ops.push(op.into());
+        }
+
+        let response = self
+            .client
+            .bulk(BulkParts::None)
+            .body(ops)
+            .send()
+            .await
+            .map_err(|e| ElasticClientError::TransportError(e.to_string()))?;
+
+        if !response.status_code().is_success() {
+            let error_body: Value = response
+                .json()
+                .await
+                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
+            return Err(ElasticClientError::BulkRequestError(error_body.to_string()));
         }
 
         Ok(())
