@@ -1,31 +1,12 @@
+use crate::{channel::ElasticChannelItem, utils::fingerprint};
+use anyhow::{anyhow, Result};
 use elasticsearch::{
     auth::Credentials,
     cert::CertificateValidation,
-    http::transport::{SingleNodeConnectionPool, Transport, TransportBuilder},
-    BulkOperation, BulkParts, Elasticsearch, IndexParts, ScrollParts, SearchParts,
+    http::transport::{SingleNodeConnectionPool, TransportBuilder},
+    BulkOperation, BulkParts, Elasticsearch, SearchParts,
 };
 use serde_json::{json, Value};
-use thiserror::Error;
-
-use crate::channel::ElasticChannelItem;
-
-#[derive(Debug, Error)]
-pub enum ElasticClientError {
-    #[error("Invalid URL: {0}")]
-    InvalidUrl(String),
-
-    #[error("Transport creation failed: {0}")]
-    TransportError(String),
-
-    #[error("Response JSON parsing failed: {0}")]
-    ResponseParseError(String),
-
-    #[error("Indexing failed: {0}")]
-    IndexRequestError(String),
-
-    #[error("Bulk request failed: {0}")]
-    BulkRequestError(String),
-}
 
 #[derive(Debug, Clone)]
 pub struct ElasticClient {
@@ -33,152 +14,114 @@ pub struct ElasticClient {
 }
 
 impl ElasticClient {
-    pub fn new(
-        url: String,
-        username: String,
-        password: String,
-    ) -> Result<Self, ElasticClientError> {
-        let transport = Self::build_transport(&url, &username, &password)?;
+    pub fn new(url: String, username: String, password: String) -> Result<Self> {
+        let pool = SingleNodeConnectionPool::new(url.parse()?);
+        let credentials = Credentials::Basic(username, password);
+        let transport = TransportBuilder::new(pool)
+            .auth(credentials)
+            .cert_validation(CertificateValidation::None)
+            .build()?;
+
         Ok(Self {
             client: Elasticsearch::new(transport),
         })
     }
 
-    fn build_transport(
-        url: &str,
-        username: &str,
-        password: &str,
-    ) -> Result<Transport, ElasticClientError> {
-        let parsed_url = url
-            .parse()
-            .map_err(|_| ElasticClientError::InvalidUrl(url.to_owned()))?;
-
-        let pool = SingleNodeConnectionPool::new(parsed_url);
-        let credentials = Credentials::Basic(username.to_owned(), password.to_owned());
-
-        TransportBuilder::new(pool)
-            .auth(credentials)
-            .cert_validation(CertificateValidation::None)
-            .build()
-            .map_err(|e| ElasticClientError::TransportError(e.to_string()))
-    }
-
-    pub async fn store(&self, index: &str, content: &Value) -> Result<(), ElasticClientError> {
-        let response = self
-            .client
-            .index(IndexParts::Index(index))
-            .body(content)
-            .send()
-            .await
-            .map_err(|e| ElasticClientError::TransportError(e.to_string()))?;
-
-        if !response.status_code().is_success() {
-            let error_body: Value = response
-                .json()
-                .await
-                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
-            return Err(ElasticClientError::IndexRequestError(
-                error_body.to_string(),
-            ));
-        }
-
-        Ok(())
-    }
-
-    pub async fn store_bulk(
-        &self,
-        items: Vec<ElasticChannelItem>,
-    ) -> Result<(), ElasticClientError> {
+    pub async fn store(&self, items: Vec<ElasticChannelItem>) -> Result<()> {
         if items.is_empty() {
             return Ok(());
         }
+
         let mut ops: Vec<BulkOperation<Value>> = Vec::new();
 
         for item in items.iter() {
-            let content = serde_json::from_str::<Value>(&item.content)
-                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
-            let op = BulkOperation::create(content).index(item.index.clone());
-            ops.push(op.into());
+            let content = serde_json::from_str(&item.content)?;
+            ops.push(BulkOperation::create(content).index(&item.index).into());
         }
 
-        let response = self
-            .client
-            .bulk(BulkParts::None)
-            .body(ops)
-            .send()
-            .await
-            .map_err(|e| ElasticClientError::TransportError(e.to_string()))?;
+        let response = self.client.bulk(BulkParts::None).body(ops).send().await?;
+        let status = response.status_code();
 
         if !response.status_code().is_success() {
-            let error_body: Value = response
-                .json()
-                .await
-                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
-            return Err(ElasticClientError::BulkRequestError(error_body.to_string()));
+            let error_body: Value = response.json().await?;
+            return Err(anyhow!("bulk insert failed ({}): {}", status, error_body));
         }
 
         Ok(())
     }
 
-    pub async fn retrieve(&self, index: &str) -> Result<Vec<Value>, ElasticClientError> {
-        let mut docs = Vec::new();
-
+    pub async fn exists(&self, index: &str) -> Result<bool> {
         let response = self
             .client
-            .search(SearchParts::Index(&[index]))
-            .scroll("1m")
-            .body(json!({ "query": { "match_all": {} } }))
+            .indices()
+            .exists(elasticsearch::indices::IndicesExistsParts::Index(&[index]))
             .send()
-            .await
-            .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
+            .await?;
+        let status = response.status_code();
+        Ok(status == 200)
+    }
 
-        let response_body = response
-            .json::<Value>()
-            .await
-            .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
-
-        let mut scroll_id = response_body["_scroll_id"]
-            .as_str()
-            .ok_or_else(|| {
-                ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
-            })?
-            .to_string();
-
-        if let Some(hits) = response_body["hits"]["hits"].as_array() {
-            docs.extend(hits.clone());
+    pub async fn hash(&self, index: &str) -> Result<String> {
+        match self.exists(index).await {
+            Ok(true) => (),
+            Ok(false) => return Err(anyhow!("index {} does not exists", index)),
+            Err(err) => return Err(err),
         }
 
+        let items = self.retrieve(index).await?;
+        let mut hash = String::new();
+
+        for item in items {
+            let Some(source) = item.get("_source") else {
+                continue;
+            };
+            hash = fingerprint(&hash, &source.to_string());
+        }
+
+        Ok(hash)
+    }
+
+    pub async fn retrieve(&self, index: &str) -> Result<Vec<Value>> {
+        let mut docs = Vec::new();
+        let mut last: Option<Value> = None;
+
         loop {
-            let scroll_response = self
+            let mut query = json!({
+                "size": 10_000,
+                "sort": [{"_doc": "asc"}],
+                "query": {"match_all": {}}
+            });
+
+            if let Some(valor) = &last {
+                query["search_after"] = valor.clone();
+            }
+
+            let response = self
                 .client
-                .scroll(ScrollParts::None)
-                .scroll("1m")
-                .body(json!({ "scroll_id": scroll_id }))
+                .search(SearchParts::Index(&[index]))
+                .body(query)
                 .send()
-                .await
-                .map_err(|e| ElasticClientError::IndexRequestError(e.to_string()))?;
+                .await?;
 
-            let scroll_body = scroll_response
-                .json::<Value>()
-                .await
-                .map_err(|e| ElasticClientError::ResponseParseError(e.to_string()))?;
-
-            let hits = scroll_body["hits"]["hits"].as_array().ok_or_else(|| {
-                ElasticClientError::ResponseParseError("Missing hits".to_string())
-            })?;
+            let body = response.json::<Value>().await?;
+            let hits = body["hits"]["hits"]
+                .as_array()
+                .ok_or_else(|| anyhow!("invalid search response for index '{}'", index))?;
 
             if hits.is_empty() {
                 break;
             }
 
-            docs.extend(hits.clone());
+            match hits.last() {
+                Some(last_hit) => last = Some(last_hit["sort"].clone()),
+                None => {
+                    return Err(anyhow!(
+                        "error fetching documents: missing field sort in request"
+                    ))
+                }
+            }
 
-            scroll_id = scroll_body["_scroll_id"]
-                .as_str()
-                .ok_or_else(|| {
-                    ElasticClientError::ResponseParseError("Missing _scroll_id".to_string())
-                })?
-                .to_string();
+            docs.extend(hits.to_vec());
         }
 
         Ok(docs)

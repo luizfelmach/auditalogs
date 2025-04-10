@@ -1,4 +1,4 @@
-use crate::{state::AppState, utils::fingerprint};
+use crate::state::AppState;
 use axum::{
     extract::{Path, State},
     routing::get,
@@ -13,19 +13,8 @@ pub fn create_router(state: Arc<AppState>) -> Router {
 }
 
 async fn handle_hash(Path(index): Path<String>, State(state): State<Arc<AppState>>) -> String {
-    let result = state.elastic.retrieve(index.as_str()).await;
-    let Ok(items) = result else {
-        return format!("Error: {}", result.unwrap_err());
-    };
-
-    let mut hash = String::new();
-
-    for item in items {
-        let Some(source) = item.get("_source") else {
-            continue;
-        };
-        hash = fingerprint(&hash, &source.to_string());
+    match state.elastic.hash(index.as_str()).await {
+        Ok(result) => result,
+        Err(err) => return format!("error: {}", err),
     }
-
-    return hash;
 }

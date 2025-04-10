@@ -1,6 +1,6 @@
 use crate::state::AppState;
 use std::sync::Arc;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, error, info, trace};
 
 pub async fn elastic(state: Arc<AppState>) {
     let config = state.config.clone();
@@ -22,7 +22,7 @@ pub async fn elastic(state: Arc<AppState>) {
         buffer.push(msg.clone());
 
         if buffer.len() >= 10_000 {
-            if let Err(err) = client.store_bulk(buffer.clone()).await {
+            if let Err(err) = client.store(buffer.clone()).await {
                 error!(?err, "error storing documents");
             }
             buffer.clear();
