@@ -3,7 +3,7 @@ port = 8080
 name = "worker"
 queue_size = 8192
 batch_size = 100_000
-ethereum_batch_size = 100
+ethereum_batch_size = 1
 threads = 12
 
 [ethereum]

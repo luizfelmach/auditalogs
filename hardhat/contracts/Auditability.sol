@@ -36,6 +36,10 @@ contract Auditability {
         return indices[index].exists;
     }
 
+    function hash(string memory index) public view returns (bytes32) {
+        return indices[index].hash;
+    }
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner.");
         _;

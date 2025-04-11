@@ -82,6 +82,16 @@ impl EthereumClient {
         }
     }
 
+    pub async fn exists(&self, index: String) -> Result<bool> {
+        let result = self.instance.exists(index).call().await?;
+        Ok(result._0)
+    }
+
+    pub async fn hash(&self, index: String) -> Result<FixedBytes<32>> {
+        let result = self.instance.hash(index).call().await?;
+        Ok(result._0)
+    }
+
     pub async fn wait_tx(&self, tx_hash: FixedBytes<32>) -> Result<FixedBytes<32>> {
         let mut interval = tokio::time::interval(Duration::from_millis(500));
         loop {
@@ -102,6 +112,7 @@ sol! {
         event IndexStored(string indexed index, bytes32 hash);
         function store(string index, bytes32 root) external;
         function proof(string index, bytes32 root) external view returns (bool);
+        function hash(string index) external view returns (bytes32);
         function exists(string index) external view returns (bool);
         function owner() external view returns (address);
     }
