@@ -55,7 +55,7 @@ impl EthereumClient {
 
         Ok(receipt.transaction_hash)
     }
-    pub async fn send_tx(
+    pub async fn store(
         &self,
         nonce: u64,
         index: &String,
