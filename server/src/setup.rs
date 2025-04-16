@@ -4,9 +4,17 @@ use crate::{
     config::AppConfig,
     state::AppState,
 };
+use clap::Parser;
 use std::{env, process, sync::Arc};
 use tokio::runtime::{Builder, Runtime};
 use tracing::{debug, error};
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    config: String,
+}
 
 pub fn log() {
     let level = env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
@@ -37,7 +45,8 @@ pub fn runtime(threads: usize) -> Runtime {
 }
 
 pub fn state() -> Arc<AppState> {
-    let config = AppConfig::load("Config.toml".into());
+    let args = Args::parse();
+    let config = AppConfig::load(args.config);
     let Ok(config) = config else {
         error!("error reading config file: {:?}", config);
         process::exit(1);

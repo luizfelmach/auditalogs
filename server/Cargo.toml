@@ -1,5 +1,5 @@
 [package]
-name = "audita-server"
+name = "auditaserver"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,3 +17,4 @@ toml = "0.8.20"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 anyhow = "1.0.97"
+clap = { version = "4.5.36", features = ["derive"] }
