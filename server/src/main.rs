@@ -1,6 +1,7 @@
 mod channel;
 mod client;
 mod config;
+mod prometheus;
 mod route;
 mod setup;
 mod state;

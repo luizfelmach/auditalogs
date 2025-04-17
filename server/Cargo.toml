@@ -18,3 +18,4 @@ tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 anyhow = "1.0.97"
 clap = { version = "4.5.36", features = ["derive"] }
+prometheus = "0.14.0"

@@ -2,6 +2,7 @@ use crate::{
     channel,
     client::{elastic::ElasticClient, ethereum::EthereumClient},
     config::AppConfig,
+    prometheus::Prometheus,
     state::AppState,
 };
 use clap::Parser;
@@ -76,11 +77,14 @@ pub fn state() -> Arc<AppState> {
         process::exit(1);
     };
 
+    let prometheus = Prometheus::new();
+
     return Arc::new(AppState {
         config,
         tx,
         rx,
         elastic,
         ethereum,
+        prometheus,
     });
 }

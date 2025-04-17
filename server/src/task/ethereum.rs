@@ -16,6 +16,7 @@ pub async fn ethereum(state: Arc<AppState>) {
     );
 
     while let Some(msg) = rx.ethereum.lock().await.recv().await {
+        state.prometheus.ethereum_queue.dec();
         trace!(?msg.index, hash = ?msg.hash, "received message for ethereum");
 
         if ethereum.disable {

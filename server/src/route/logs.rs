@@ -24,6 +24,9 @@ async fn handle_logs(
         }));
     }
 
+    state.prometheus.logs.inc();
+    state.prometheus.logs_queue.inc();
+
     return Json(json!({
         "message": "Data received and being processed.",
         "received": received

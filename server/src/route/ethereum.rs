@@ -78,12 +78,16 @@ async fn handle_ethereum(
     let received = payload.clone();
 
     match state.tx.ethereum.send(payload).await {
-        Ok(_) => Ok(Json(json!({
-            "status": "processing",
-            "message": "Data received and being processed",
-            "received": received,
-            "timestamp": chrono::Utc::now().to_rfc3339(),
-        }))),
+        Ok(_) => {
+            state.prometheus.ethereum_queue.inc();
+
+            Ok(Json(json!({
+                "status": "processing",
+                "message": "Data received and being processed",
+                "received": received,
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+            })))
+        }
         Err(err) => {
             error!(
                 error = %err,

@@ -19,6 +19,7 @@ pub async fn worker(state: Arc<AppState>) {
     debug!(counter = counter, hash = hash, index = index, "state");
 
     while let Some(msg) = rx.worker.lock().await.recv().await {
+        state.prometheus.logs_queue.dec();
         trace!(?msg, "received message for processing");
 
         hash = fingerprint(&hash, &msg);
@@ -31,11 +32,15 @@ pub async fn worker(state: Arc<AppState>) {
             error!("failed to send message to elastic channel: {:?}", err);
         }
 
+        state.prometheus.elastic_queue.inc();
+
         if counter >= config.batch_size {
             let item = EthereumChannelItem::new(index.clone(), hash.clone().parse().unwrap());
             if let Err(err) = tx.ethereum.send(item).await {
                 error!("failed to send message to ethereum channel: {:?}", err);
             }
+
+            state.prometheus.ethereum_queue.inc();
 
             info!(
                 "batch processing completed. items processed: {}, index: {} ({})",

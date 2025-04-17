@@ -13,6 +13,7 @@ pub async fn elastic(state: Arc<AppState>) {
     info!("elastic worker started with disable: {}", elastic.disable);
 
     while let Some(msg) = rx.elastic.lock().await.recv().await {
+        state.prometheus.elastic_queue.dec();
         trace!(?msg.index, content_len = msg.content.len(), "received message for elastic");
         if elastic.disable {
             debug!("elastic disabled, skipping message");
