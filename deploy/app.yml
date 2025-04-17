@@ -1,0 +1,14 @@
+services:
+  auditaserver:
+    image: ghcr.io/luizfelmach/auditaserver:latest
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - ./auditaserver/:/etc/auditaserver:ro
+    networks:
+      - audita
+
+networks:
+  audita:
+    external: true
