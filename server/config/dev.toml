@@ -1,5 +1,5 @@
 host = "0.0.0.0"
-port = 8081
+port = 8080
 name = "worker"
 queue_size = 8192
 batch_size = 100_000
