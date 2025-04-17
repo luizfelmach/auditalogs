@@ -19,5 +19,7 @@ RUN apt-get update && \
 
 COPY config/dev.toml /etc/auditaserver/config.toml
 COPY --from=builder /usr/local/cargo/bin/auditaserver /usr/local/bin/auditaserver
+COPY ./entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD [ "auditaserver", "--config", "/etc/auditaserver/config.toml" ]
+CMD ["/entrypoint.sh"]
