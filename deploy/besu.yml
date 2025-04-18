@@ -5,6 +5,7 @@ services:
     network_mode: host
     volumes:
       - besudata:/var/lib/besu
+      - auditalogs:/var/log
     command: >
       --network=dev
       --rpc-http-cors-origins="all"
@@ -25,3 +26,5 @@ services:
 
 volumes:
   besudata:
+  auditalogs:
+    external: true

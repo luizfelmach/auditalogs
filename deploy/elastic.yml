@@ -6,6 +6,7 @@ services:
     volumes:
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
       - esdata:/usr/share/elasticsearch/data:Z
+      - auditalogs:/var/log
     environment:
       - ES_JAVA_OPTS=-Xms8g -Xmx8g
       - ELASTIC_PASSWORD=changeme
@@ -33,6 +34,10 @@ services:
       - ELASTICSEARCH_HOSTS=http://localhost:9200
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=changeme
+    volumes:
+      - auditalogs:/var/log
 
 volumes:
   esdata:
+  auditalogs:
+    external: true
