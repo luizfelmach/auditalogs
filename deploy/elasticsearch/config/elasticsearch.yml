@@ -2,7 +2,7 @@
 ## Default Elasticsearch configuration from Elasticsearch base image.
 ## https://github.com/elastic/elasticsearch/blob/main/distribution/docker/src/docker/config/elasticsearch.yml
 #
-cluster.name: docker-cluster
+cluster.name: elasticsearch-docker
 network.host: 0.0.0.0
 
 ## X-Pack settings
@@ -11,3 +11,4 @@ network.host: 0.0.0.0
 xpack.license.self_generated.type: trial
 xpack.security.enabled: true
 cluster.max_shards_per_node: 100000000
+discovery.type: single-node

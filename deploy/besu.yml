@@ -2,11 +2,7 @@ services:
   besu:
     image: hyperledger/besu:25.2.2
     restart: unless-stopped
-    ports:
-      - "8545:8545"
-      - "9545:9545"
-      - "8546:8546"
-      - "30303:30303"
+    network_mode: host
     volumes:
       - besudata:/var/lib/besu
     command: >
@@ -26,12 +22,6 @@ services:
       --rpc-http-max-active-connections=100000
       --min-gas-price=0
       --tx-pool-max-future-by-sender=1024
-    networks:
-      - audita
-
-networks:
-  audita:
-    external: true
 
 volumes:
   besudata:
