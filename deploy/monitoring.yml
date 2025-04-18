@@ -5,6 +5,7 @@ services:
     network_mode: host
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
       - grafanadata:/var/lib/grafana
       - auditalogs:/var/log
     environment:
@@ -20,6 +21,20 @@ services:
       - auditalogs:/var/log
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    restart: unless-stopped
+    network_mode: "host"
+    pid: "host"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
 
   loki:
     image: grafana/loki:latest
