@@ -11,6 +11,9 @@ services:
     image: ghcr.io/luizfelmach/auditaui:latest
     restart: unless-stopped
     network_mode: host
+    environment:
+      - AUDITA_URL=http://localhost:8080
+      - AUDITA_PORT=8081
     volumes:
       - auditalogs:/var/log/
 
