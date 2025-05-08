@@ -7,6 +7,13 @@ services:
       - ./auditaserver/:/etc/auditaserver:ro
       - auditalogs:/var/log/
 
+  auditaui:
+    image: ghcr.io/luizfelmach/auditaui:latest
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - auditalogs:/var/log/
+
 volumes:
   auditalogs:
     external: true
