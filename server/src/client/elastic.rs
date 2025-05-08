@@ -126,4 +126,48 @@ impl ElasticClient {
 
         Ok(docs)
     }
+
+    pub async fn search_by_ip_and_date_range(
+        &self,
+        ip: String,
+        from: String,
+        to: String,
+    ) -> Result<Vec<Value>> {
+        let query = json!({
+            "size": 10000,
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "term": {
+                                "ip": ip
+                            }
+                        },
+                        {
+                            "range": {
+                                "timestamp": {
+                                    "gte": from,
+                                    "lte": to
+                                }
+                            }
+                        }
+                    ]
+                }
+            }
+        });
+
+        let response = self
+            .client
+            .search(SearchParts::None)
+            .body(query)
+            .send()
+            .await?;
+
+        let body = response.json::<Value>().await?;
+        let hits = body["hits"]["hits"]
+            .as_array()
+            .ok_or_else(|| anyhow!("invalid search response"))?;
+
+        Ok(hits.to_vec())
+    }
 }
