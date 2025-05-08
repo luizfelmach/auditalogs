@@ -173,7 +173,7 @@ function App() {
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-2xl font-bold text-gray-800">
-              Audita Logs
+              Audita Logs ({import.meta.env.AUDITA_URL})
             </CardTitle>
             <CardDescription className="text-gray-500">
               Search and verify logs from Elasticsearch
