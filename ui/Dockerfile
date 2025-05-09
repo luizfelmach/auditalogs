@@ -1,5 +1,4 @@
-# Estágio de build
-FROM node:20-alpine AS build
+FROM node:20-alpine
 
 WORKDIR /app
 
@@ -12,16 +11,8 @@ RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 
-RUN pnpm build
-
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
 RUN npm install -g serve
-
-COPY --from=build /app/dist ./dist
 
 EXPOSE 8081
 
-CMD ["serve", "-s", "dist", "-l", "8081"]
+CMD ["sh", "-c", "pnpm build && serve -s dist -l 8081"]
