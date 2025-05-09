@@ -13,6 +13,7 @@
     "@radix-ui/react-popover": "^1.1.13",
     "@radix-ui/react-slot": "^1.2.2",
     "@tailwindcss/vite": "^4.1.5",
+    "@tanstack/react-query": "^5.75.7",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
