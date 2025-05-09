@@ -1,10 +1,15 @@
 use crate::{route, state::AppState};
 use std::{process, sync::Arc};
 use tokio::net;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 
 pub async fn server(state: Arc<AppState>) {
-    let app = route::create_router(Arc::clone(&state));
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
+    let app = route::create_router(Arc::clone(&state)).layer(cors);
     let url = format!("{}:{}", state.config.host, state.config.port);
     let bind = net::TcpListener::bind(&url).await;
 
