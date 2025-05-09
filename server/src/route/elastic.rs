@@ -65,8 +65,8 @@ pub async fn handle_hash(
 
     Ok(Json(json!({
         "status": "success",
-        "index": format!("0x{index}"),
-        "hash": hash,
+        "index": index,
+        "hash": format!("0x{hash}"),
         "timestamp": chrono::Utc::now().to_rfc3339()
     })))
 }
