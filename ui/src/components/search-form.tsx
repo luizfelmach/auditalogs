@@ -43,7 +43,7 @@ export function SearchForm({ onSearch }: SearchFormProps) {
 
   return (
     <Card className="border-[#00BFB3]/20 shadow-md">
-      <CardContent className="pt-6">
+      <CardContent className="pt-6 max-w-2xl">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="ip-address" className="text-sm font-medium">

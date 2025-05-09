@@ -55,9 +55,6 @@ export async function verifyDocumentIntegrity(
   const data1 = await response1.json();
   const data2 = await response2.json();
 
-  console.log(data1);
-  console.log(data2);
-
   const isIntact = data1.hash === data2.hash;
   return {
     documentId: index,
