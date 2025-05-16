@@ -58,6 +58,8 @@ export async function verifyDocumentIntegrity(
   const isIntact = data1.hash === data2.hash;
   return {
     documentId: index,
+    hashElastic: data1.hash,
+    hashEthereum: data2.hash,
     isIntact,
     verifiedAt: new Date().toISOString(),
   };

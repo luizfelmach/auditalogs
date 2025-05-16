@@ -13,6 +13,8 @@ export interface ElasticsearchDocument {
 
 export interface VerificationResult {
   documentId: string;
+  hashElastic: string;
+  hashEthereum: string;
   isIntact: boolean;
   verifiedAt: string;
 }

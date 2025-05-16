@@ -13,11 +13,37 @@ import {
 import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { verifyDocumentIntegrity } from "@/lib/api";
-import type { ElasticsearchDocument } from "@/types/search";
+import type { ElasticsearchDocument, VerificationResult } from "@/types/search";
 import { toast } from "sonner";
 
 interface DocumentItemProps {
   document: ElasticsearchDocument;
+}
+
+function showVerificationToast(result: VerificationResult) {
+  if (result.isIntact) {
+    toast.success(
+      <div>
+        <strong>✔️ Document Integrity Verified</strong>
+        <p>The document is intact and has not been modified.</p>
+      </div>,
+      { duration: 4000 },
+    );
+  } else {
+    toast.error(
+      <div>
+        <strong>⚠️ Document Integrity Issue</strong>
+        <p>The document may have been modified or corrupted.</p>
+        <p>
+          <b>Elastic Hash:</b> <code>{result.hashElastic}</code>
+        </p>
+        <p>
+          <b>Ethereum Hash:</b> <code>{result.hashEthereum}</code>
+        </p>
+      </div>,
+      { duration: 6000 },
+    );
+  }
 }
 
 export function DocumentItem({ document }: DocumentItemProps) {
@@ -26,15 +52,7 @@ export function DocumentItem({ document }: DocumentItemProps) {
   const { mutate: verifyIntegrity, isPending } = useMutation({
     mutationFn: () => verifyDocumentIntegrity(document.index),
     onSuccess: (result) => {
-      if (result.isIntact) {
-        toast("Document Integrity Verified", {
-          description: "The document is intact and has not been modified.",
-        });
-      } else {
-        toast("Document Integrity Issue", {
-          description: "The document may have been modified or corrupted.",
-        });
-      }
+      showVerificationToast(result);
     },
     onError: () => {
       toast("Verification Failed", {
