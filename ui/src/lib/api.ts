@@ -1,11 +1,7 @@
-import type {
-  SearchParams,
-  ElasticsearchDocument,
-  VerificationResult,
-} from "@/types/search";
+import type { ElasticsearchDocument, VerificationResult } from "@/types/search";
 
 export async function searchDocuments(
-  params: SearchParams,
+  query: any,
 ): Promise<ElasticsearchDocument[]> {
   const url = `${import.meta.env.AUDITA_URL}/elastic/search`;
 
@@ -14,11 +10,7 @@ export async function searchDocuments(
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      ip: params.ipAddress,
-      from: params.dateFrom,
-      to: params.dateTo,
-    }),
+    body: JSON.stringify(query),
   });
 
   if (!response.ok) {
@@ -31,7 +23,6 @@ export async function searchDocuments(
     (item: any): ElasticsearchDocument => ({
       id: item._id,
       index: item._index,
-      timestamp: item._source.timestamp,
       source: { ...item._source },
     }),
   );

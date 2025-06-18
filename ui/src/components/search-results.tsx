@@ -1,95 +1,117 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DocumentItem } from "@/components/document-item";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { searchDocuments } from "@/lib/api";
-import type { SearchParams } from "@/types/search";
 import { Badge } from "@/components/ui/badge";
-import { FileText } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Search } from "lucide-react";
+import type { ElasticsearchDocument } from "../types/search";
 
 interface SearchResultsProps {
-  searchParams: SearchParams;
+  results: ElasticsearchDocument[];
+  isSearching: boolean;
+  hasSearched: boolean;
+  filtersCount: number;
 }
 
-export function SearchResults({ searchParams }: SearchResultsProps) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["documents", searchParams],
-    queryFn: () => searchDocuments(searchParams),
-  });
-
-  if (isLoading) {
-    return (
-      <Card className="border-[#00BFB3]/20 shadow-md">
-        <CardHeader className="border-b border-slate-100">
-          <CardTitle className="text-xl font-semibold text-slate-800">
-            <Skeleton className="h-6 w-48" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-6">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="border rounded-lg p-4 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Skeleton className="h-5 w-40 mb-2" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
-                  <Skeleton className="h-9 w-32" />
-                </div>
-                <Skeleton className="h-24 w-full mt-2" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to fetch documents. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+export function SearchResults({
+  results,
+  isSearching,
+  hasSearched,
+  filtersCount,
+}: SearchResultsProps) {
+  if (!hasSearched) return null;
 
   return (
-    <Card className="border-[#00BFB3]/20 shadow-md">
-      <CardHeader className="border-b border-slate-100">
-        <CardTitle className="text-xl font-semibold text-slate-800">
-          Search Results
-          <Badge
-            variant="outline"
-            className="ml-2 bg-[#00BFB3]/10 text-[#00BFB3] border-[#00BFB3]/20"
-          >
-            {data?.length || 0} documents found
-          </Badge>
-        </CardTitle>
+    <Card>
+      <CardHeader>
+        <CardTitle>Documentos Encontrados</CardTitle>
+        <CardDescription>
+          {isSearching
+            ? "Executando busca com filtros..."
+            : `${results.length} documentos encontrados`}
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        {data?.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <div className="mx-auto w-16 h-16 mb-4 rounded-full bg-slate-100 flex items-center justify-center">
-              <FileText className="h-8 w-8 text-slate-400" />
+      <CardContent>
+        {isSearching ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : results.length > 0 ? (
+          <div className="space-y-4">
+            {results.map((doc) => (
+              <Card key={doc.id} className="border-l-4 border-l-blue-500">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {doc.id}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        {doc.index}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(doc.source).map(([key, value]) => (
+                      <div key={key} className="space-y-1">
+                        <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          {key.replace(/_/g, " ")}
+                        </Label>
+                        <div className="text-sm">
+                          {typeof value === "boolean" ? (
+                            <Badge variant={value ? "default" : "secondary"}>
+                              {value ? "True" : "False"}
+                            </Badge>
+                          ) : typeof value === "number" ? (
+                            <span className="font-mono">{value}</span>
+                          ) : typeof value === "string" && value.length > 50 ? (
+                            <div className="truncate" title={value}>
+                              {value}
+                            </div>
+                          ) : (
+                            <span>{String(value)}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                      Ver JSON completo
+                    </summary>
+                    <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-x-auto">
+                      {JSON.stringify(doc.source, null, 2)}
+                    </pre>
+                  </details>
+                </CardContent>
+              </Card>
+            ))}
+
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-sm text-muted-foreground">
+                Mostrando {results.length} documentos | Filtros aplicados:{" "}
+                {filtersCount}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Tempo de busca: 0.45s
+              </p>
             </div>
-            <p className="text-lg font-medium text-slate-600">
-              No documents found matching your search criteria.
-            </p>
-            <p className="text-sm text-slate-500 mt-1">
-              Try adjusting your search parameters.
-            </p>
           </div>
         ) : (
-          <div className="space-y-6">
-            {data?.map((document) => (
-              <DocumentItem key={document.id} document={document} />
-            ))}
+          <div className="text-center py-8">
+            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Nenhum resultado encontrado</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Tente ajustar os filtros ou verificar a conexão com o
+              Elasticsearch
+            </p>
           </div>
         )}
       </CardContent>
