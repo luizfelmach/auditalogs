@@ -1,13 +1,15 @@
-import { Header } from "./components/header";
-import { SearchInterface } from "./components/search-interface";
+import { useState } from "react";
+import { LoginPage } from "./pages/login";
+import { Dashboard } from "./pages/dashboard";
 
 function App() {
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <Header />
-      <SearchInterface />
-    </div>
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={() => setIsAuthenticated(true)} />;
+  }
+
+  return <Dashboard />;
 }
 
 export default App;
