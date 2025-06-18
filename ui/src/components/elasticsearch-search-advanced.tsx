@@ -47,7 +47,7 @@ export interface ElasticsearchDocument {
 export interface VerificationResult {
   documentId: string;
   hashElastic: string;
-  hashEthereum: string;
+  hashEthereum: string | null;
   isIntact: boolean;
   verifiedAt: string;
 }
@@ -94,7 +94,7 @@ export function ElasticsearchSearchAdvanced() {
     type: "" as "string" | "int" | "date" | "",
     operator: "",
     value: "",
-    value2: "", // For "between" operations
+    value2: "",
   });
   const [searchResults, setSearchResults] = useState<ElasticsearchDocument[]>(
     [],
@@ -208,7 +208,10 @@ export function ElasticsearchSearchAdvanced() {
         (doc, index) => ({
           documentId: doc.id,
           hashElastic: `0x${Math.random().toString(16).substr(2, 64)}`,
-          hashEthereum: `0x${Math.random().toString(16).substr(2, 64)}`,
+          hashEthereum:
+            Math.random() > 0.4
+              ? `0x${Math.random().toString(16).substr(2, 64)}`
+              : null, // 60% chance of having Ethereum hash
           isIntact: Math.random() > 0.3, // 70% chance of being intact
           verifiedAt: new Date().toISOString(),
         }),
@@ -251,8 +254,17 @@ export function ElasticsearchSearchAdvanced() {
     return filter.value;
   };
 
-  const getVerificationBadge = (isIntact: boolean) => {
-    return isIntact ? (
+  const getVerificationBadge = (result: VerificationResult) => {
+    if (!result.hashEthereum) {
+      return (
+        <Badge variant="outline" className="bg-gray-100 text-gray-600">
+          <AlertCircle className="h-3 w-3 mr-1" />
+          Não Registrado
+        </Badge>
+      );
+    }
+
+    return result.isIntact ? (
       <Badge variant="default" className="bg-green-100 text-green-800">
         <CheckCircle className="h-3 w-3 mr-1" />
         Íntegro
@@ -640,11 +652,13 @@ export function ElasticsearchSearchAdvanced() {
                             {result.hashElastic}
                           </TableCell>
                           <TableCell className="font-mono text-xs max-w-xs truncate">
-                            {result.hashEthereum}
+                            {result.hashEthereum || (
+                              <span className="text-muted-foreground italic">
+                                Não registrado
+                              </span>
+                            )}
                           </TableCell>
-                          <TableCell>
-                            {getVerificationBadge(result.isIntact)}
-                          </TableCell>
+                          <TableCell>{getVerificationBadge(result)}</TableCell>
                           <TableCell className="font-mono text-sm">
                             {new Date(result.verifiedAt).toLocaleString()}
                           </TableCell>
@@ -657,12 +671,30 @@ export function ElasticsearchSearchAdvanced() {
                 <div className="flex items-center justify-between">
                   <div className="flex space-x-4">
                     <p className="text-sm text-green-600">
-                      ✓ {verificationResults.filter((r) => r.isIntact).length}{" "}
+                      ✓{" "}
+                      {
+                        verificationResults.filter(
+                          (r) => r.hashEthereum && r.isIntact,
+                        ).length
+                      }{" "}
                       documentos íntegros
                     </p>
                     <p className="text-sm text-red-600">
-                      ✗ {verificationResults.filter((r) => !r.isIntact).length}{" "}
+                      ✗{" "}
+                      {
+                        verificationResults.filter(
+                          (r) => r.hashEthereum && !r.isIntact,
+                        ).length
+                      }{" "}
                       documentos comprometidos
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      ⚪{" "}
+                      {
+                        verificationResults.filter((r) => !r.hashEthereum)
+                          .length
+                      }{" "}
+                      não registrados na blockchain
                     </p>
                   </div>
                   <p className="text-sm text-muted-foreground">
