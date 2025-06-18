@@ -6,10 +6,12 @@ export interface ElasticsearchDocument {
 
 export interface VerificationResult {
   documentId: string;
-  hashElastic: string;
+  hashElastic: string | null;
+  hashElasticLoading: boolean;
   hashEthereum: string | null;
-  isIntact: boolean;
-  verifiedAt: string;
+  hashEthereumLoading: boolean;
+  isIntact: boolean | null;
+  verifiedAt: string | null;
 }
 
 export interface SearchFilter {

@@ -1,4 +1,4 @@
-import type { ElasticsearchDocument, VerificationResult } from "@/types/search";
+import type { ElasticsearchDocument } from "@/types/search";
 
 export async function searchDocuments(
   query: any,
@@ -28,30 +28,28 @@ export async function searchDocuments(
   );
 }
 
-export async function verifyDocumentIntegrity(
+export async function retrieveElasticHash(
   index: string,
-): Promise<VerificationResult> {
-  const url1 = `${import.meta.env.AUDITA_URL}/elastic/${index}`;
-  const url2 = `${import.meta.env.AUDITA_URL}/ethereum/${index}`;
-
-  const response1 = await fetch(url1);
-  const response2 = await fetch(url2);
-
-  if (!response1.ok) {
-    throw new Error(`Failed to check documents: ${response1.statusText}`);
+): Promise<string | null> {
+  const url = `${import.meta.env.AUDITA_URL}/elastic/${index}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    return null;
   }
-  if (!response2.ok) {
-    throw new Error(`Failed to check documents: ${response2.statusText}`);
-  }
-  const data1 = await response1.json();
-  const data2 = await response2.json();
+  const data = await response.json();
+  if (!data.hash) return null;
+  return data.hash;
+}
 
-  const isIntact = data1.hash === data2.hash;
-  return {
-    documentId: index,
-    hashElastic: data1.hash,
-    hashEthereum: data2.hash,
-    isIntact,
-    verifiedAt: new Date().toISOString(),
-  };
+export async function retrieveEthereumHash(
+  index: string,
+): Promise<string | null> {
+  const url = `${import.meta.env.AUDITA_URL}/ethereum/${index}`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    return null;
+  }
+  const data = await response.json();
+  if (!data.hash) return null;
+  return data.hash;
 }
