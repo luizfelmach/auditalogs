@@ -5,7 +5,6 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use tracing::{error, instrument};
@@ -13,7 +12,7 @@ use tracing::{error, instrument};
 pub fn create_router(state: Arc<AppState>) -> Router {
     Router::new()
         .route("/elastic/{index}", get(handle_hash))
-        .route("/elastic/search", post(handle_ip_search))
+        .route("/elastic/search", post(handle_search))
         .with_state(state)
 }
 
@@ -71,36 +70,25 @@ pub async fn handle_hash(
     })))
 }
 
-#[derive(Debug, Deserialize)]
-pub struct IpSearchQuery {
-    ip: String,
-    from: String,
-    to: String,
-}
-
 #[instrument(skip(state))]
-pub async fn handle_ip_search(
+pub async fn handle_search(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<IpSearchQuery>,
+    Json(payload): Json<Value>,
 ) -> Result<Json<Value>, (StatusCode, Json<Value>)> {
-    let search_results = state
-        .elastic
-        .search_by_ip_and_date_range(payload.ip, payload.from, payload.to)
-        .await
-        .map_err(|e| {
-            error!(
-                error = %e,
-                "failed to search documents by IP and date range"
-            );
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({
-                    "status": "error",
-                    "message": "Failed to search documents",
-                    "details": e.to_string()
-                })),
-            )
-        })?;
+    let search_results = state.elastic.search_query(payload).await.map_err(|e| {
+        error!(
+            error = %e,
+            "failed to search documents by IP and date range"
+        );
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({
+                "status": "error",
+                "message": "Failed to search documents",
+                "details": e.to_string()
+            })),
+        )
+    })?;
 
     Ok(Json(json!({
         "status": "success",

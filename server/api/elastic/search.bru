@@ -1,0 +1,23 @@
+meta {
+  name: search
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/elastic/search
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "query": {
+      "bool": {
+        "must": [
+          {"prefix": {"ip": "200"}}
+        ] 
+      }
+    }
+  }
+}

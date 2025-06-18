@@ -127,35 +127,7 @@ impl ElasticClient {
         Ok(docs)
     }
 
-    pub async fn search_by_ip_and_date_range(
-        &self,
-        ip: String,
-        from: String,
-        to: String,
-    ) -> Result<Vec<Value>> {
-        let query = json!({
-            "size": 10000,
-            "query": {
-                "bool": {
-                    "must": [
-                        {
-                            "term": {
-                                "ip": ip
-                            }
-                        },
-                        {
-                            "range": {
-                                "timestamp": {
-                                    "gte": from,
-                                    "lte": to
-                                }
-                            }
-                        }
-                    ]
-                }
-            }
-        });
-
+    pub async fn search_query(&self, query: Value) -> Result<Vec<Value>> {
         let response = self
             .client
             .search(SearchParts::None)
