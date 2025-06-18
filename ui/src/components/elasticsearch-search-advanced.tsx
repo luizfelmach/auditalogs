@@ -26,29 +26,39 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus, X, Filter, Download } from "lucide-react";
+import {
+  Search,
+  Plus,
+  X,
+  Filter,
+  Download,
+  Shield,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
+
+export interface ElasticsearchDocument {
+  id: string;
+  index: string;
+  timestamp: string;
+  source: Record<string, any>;
+}
+
+export interface VerificationResult {
+  documentId: string;
+  hashElastic: string;
+  hashEthereum: string;
+  isIntact: boolean;
+  verifiedAt: string;
+}
 
 interface SearchFilter {
   id: string;
   field: string;
   operator: string;
   value: string;
-  type: "string" | "number" | "date";
+  type: "string" | "int" | "date";
 }
-
-const fieldTypes = {
-  message: "string",
-  level: "string",
-  user: "string",
-  service: "string",
-  ip: "string",
-  status: "string",
-  timestamp: "date",
-  duration: "number",
-  response_time: "number",
-  status_code: "number",
-  bytes: "number",
-};
 
 const operators = {
   string: [
@@ -59,7 +69,7 @@ const operators = {
     { value: "not_equals", label: "Diferente de" },
     { value: "regex", label: "Regex" },
   ],
-  number: [
+  int: [
     { value: "equals", label: "Igual a" },
     { value: "greater_than", label: "Maior que" },
     { value: "less_than", label: "Menor que" },
@@ -81,23 +91,34 @@ export function ElasticsearchSearchAdvanced() {
   const [filters, setFilters] = useState<SearchFilter[]>([]);
   const [newFilter, setNewFilter] = useState({
     field: "",
+    type: "" as "string" | "int" | "date" | "",
     operator: "",
     value: "",
     value2: "", // For "between" operations
   });
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<ElasticsearchDocument[]>(
+    [],
+  );
+  const [verificationResults, setVerificationResults] = useState<
+    VerificationResult[]
+  >([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   const addFilter = () => {
-    if (newFilter.field && newFilter.operator && newFilter.value) {
+    if (
+      newFilter.field &&
+      newFilter.type &&
+      newFilter.operator &&
+      newFilter.value
+    ) {
       const filter: SearchFilter = {
         id: Date.now().toString(),
         field: newFilter.field,
         operator: newFilter.operator,
         value: newFilter.value,
-        type:
-          fieldTypes[newFilter.field as keyof typeof fieldTypes] || "string",
+        type: newFilter.type,
       };
 
       // For "between" operations, combine values
@@ -106,7 +127,13 @@ export function ElasticsearchSearchAdvanced() {
       }
 
       setFilters([...filters, filter]);
-      setNewFilter({ field: "", operator: "", value: "", value2: "" });
+      setNewFilter({
+        field: "",
+        type: "",
+        operator: "",
+        value: "",
+        value2: "",
+      });
     }
   };
 
@@ -120,39 +147,49 @@ export function ElasticsearchSearchAdvanced() {
 
     // Simulate search with filters
     setTimeout(() => {
-      const mockResults = [
+      const mockResults: ElasticsearchDocument[] = [
         {
-          id: 1,
+          id: "doc_001",
+          index: "logs-2024.01",
           timestamp: "2024-01-15T14:30:25Z",
-          level: "ERROR",
-          message: "Database connection failed",
-          user: "admin",
-          service: "auth-service",
-          ip: "192.168.1.100",
-          status_code: 500,
-          duration: 1250,
+          source: {
+            event_type: "error",
+            message: "Database connection failed",
+            user_id: "admin_001",
+            application: "auth-service",
+            client_ip: "192.168.1.100",
+            response_code: 500,
+            processing_time_ms: 1250,
+            environment: "production",
+          },
         },
         {
-          id: 2,
+          id: "doc_002",
+          index: "user-activity-2024.01",
           timestamp: "2024-01-15T14:28:15Z",
-          level: "INFO",
-          message: "User login successful",
-          user: "john.doe",
-          service: "auth-service",
-          ip: "192.168.1.101",
-          status_code: 200,
-          duration: 85,
+          source: {
+            action: "login",
+            username: "john.doe",
+            success: true,
+            session_id: "sess_abc123",
+            device_type: "mobile",
+            location: "New York",
+            duration_seconds: 85,
+          },
         },
         {
-          id: 3,
+          id: "doc_003",
+          index: "system-metrics-2024.01",
           timestamp: "2024-01-15T14:25:10Z",
-          level: "WARN",
-          message: "High memory usage detected",
-          user: "system",
-          service: "monitoring",
-          ip: "192.168.1.102",
-          status_code: 200,
-          duration: 45,
+          source: {
+            metric_name: "memory_usage",
+            value: 87.5,
+            unit: "percentage",
+            host: "server-01",
+            datacenter: "us-east-1",
+            alert_threshold: 85.0,
+            status: "warning",
+          },
         },
       ];
       setSearchResults(mockResults);
@@ -160,8 +197,37 @@ export function ElasticsearchSearchAdvanced() {
     }, 2000);
   };
 
+  const verifyIntegrity = async () => {
+    if (searchResults.length === 0) return;
+
+    setIsVerifying(true);
+
+    // Simulate verification process
+    setTimeout(() => {
+      const mockVerificationResults: VerificationResult[] = searchResults.map(
+        (doc, index) => ({
+          documentId: doc.id,
+          hashElastic: `0x${Math.random().toString(16).substr(2, 64)}`,
+          hashEthereum: `0x${Math.random().toString(16).substr(2, 64)}`,
+          isIntact: Math.random() > 0.3, // 70% chance of being intact
+          verifiedAt: new Date().toISOString(),
+        }),
+      );
+
+      setVerificationResults(mockVerificationResults);
+      setIsVerifying(false);
+    }, 3000);
+  };
+
   const exportResults = () => {
-    const dataStr = JSON.stringify(searchResults, null, 2);
+    const exportData = {
+      searchResults,
+      verificationResults,
+      filters,
+      exportedAt: new Date().toISOString(),
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri =
       "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
     const exportFileDefaultName = `elasticsearch-results-${new Date().toISOString().split("T")[0]}.json`;
@@ -170,10 +236,6 @@ export function ElasticsearchSearchAdvanced() {
     linkElement.setAttribute("href", dataUri);
     linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
-  };
-
-  const getFieldType = (field: string): "string" | "number" | "date" => {
-    return fieldTypes[field as keyof typeof fieldTypes] || "string";
   };
 
   const getOperatorLabel = (type: string, operator: string) => {
@@ -189,25 +251,18 @@ export function ElasticsearchSearchAdvanced() {
     return filter.value;
   };
 
-  const getLevelBadge = (level: string) => {
-    switch (level) {
-      case "ERROR":
-        return <Badge variant="destructive">ERROR</Badge>;
-      case "WARN":
-        return (
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-            WARN
-          </Badge>
-        );
-      case "INFO":
-        return (
-          <Badge variant="default" className="bg-blue-100 text-blue-800">
-            INFO
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{level}</Badge>;
-    }
+  const getVerificationBadge = (isIntact: boolean) => {
+    return isIntact ? (
+      <Badge variant="default" className="bg-green-100 text-green-800">
+        <CheckCircle className="h-3 w-3 mr-1" />
+        Íntegro
+      </Badge>
+    ) : (
+      <Badge variant="destructive">
+        <AlertCircle className="h-3 w-3 mr-1" />
+        Comprometido
+      </Badge>
+    );
   };
 
   return (
@@ -219,8 +274,8 @@ export function ElasticsearchSearchAdvanced() {
             <span>Busca Avançada no Elasticsearch</span>
           </CardTitle>
           <CardDescription>
-            Configure filtros avançados com diferentes tipos de campo e
-            operações
+            Configure filtros personalizados definindo tipo de campo e chave
+            manualmente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -228,35 +283,36 @@ export function ElasticsearchSearchAdvanced() {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Filter className="h-4 w-4 text-blue-600" />
-              <h3 className="font-medium">Adicionar Filtros Avançados</h3>
+              <h3 className="font-medium">Adicionar Filtros Personalizados</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
               <div className="space-y-2">
-                <Label>Campo</Label>
-                <Select
+                <Label>Chave do Campo</Label>
+                <Input
                   value={newFilter.field}
-                  onValueChange={(value) =>
-                    setNewFilter({ ...newFilter, field: value, operator: "" })
+                  onChange={(e) =>
+                    setNewFilter({ ...newFilter, field: e.target.value })
+                  }
+                  placeholder="Ex: message, user_id, timestamp"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo do Campo</Label>
+                <Select
+                  value={newFilter.type}
+                  onValueChange={(value: "string" | "int" | "date") =>
+                    setNewFilter({ ...newFilter, type: value, operator: "" })
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o campo" />
+                    <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="message">Mensagem</SelectItem>
-                    <SelectItem value="level">Level</SelectItem>
-                    <SelectItem value="user">Usuário</SelectItem>
-                    <SelectItem value="service">Serviço</SelectItem>
-                    <SelectItem value="ip">IP</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="timestamp">Data/Hora</SelectItem>
-                    <SelectItem value="duration">Duração (ms)</SelectItem>
-                    <SelectItem value="response_time">
-                      Tempo Resposta
-                    </SelectItem>
-                    <SelectItem value="status_code">Código Status</SelectItem>
-                    <SelectItem value="bytes">Bytes</SelectItem>
+                    <SelectItem value="string">String</SelectItem>
+                    <SelectItem value="int">Integer</SelectItem>
+                    <SelectItem value="date">Date</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -268,14 +324,14 @@ export function ElasticsearchSearchAdvanced() {
                   onValueChange={(value) =>
                     setNewFilter({ ...newFilter, operator: value })
                   }
-                  disabled={!newFilter.field}
+                  disabled={!newFilter.type}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a operação" />
                   </SelectTrigger>
                   <SelectContent>
-                    {newFilter.field &&
-                      operators[getFieldType(newFilter.field)].map((op) => (
+                    {newFilter.type &&
+                      operators[newFilter.type].map((op) => (
                         <SelectItem key={op.value} value={op.value}>
                           {op.label}
                         </SelectItem>
@@ -286,7 +342,7 @@ export function ElasticsearchSearchAdvanced() {
 
               <div className="space-y-2">
                 <Label>Valor</Label>
-                {getFieldType(newFilter.field) === "date" ? (
+                {newFilter.type === "date" ? (
                   <Input
                     type={
                       newFilter.operator?.includes("last_")
@@ -305,11 +361,7 @@ export function ElasticsearchSearchAdvanced() {
                   />
                 ) : (
                   <Input
-                    type={
-                      getFieldType(newFilter.field) === "number"
-                        ? "number"
-                        : "text"
-                    }
+                    type={newFilter.type === "int" ? "number" : "text"}
                     value={newFilter.value}
                     onChange={(e) =>
                       setNewFilter({ ...newFilter, value: e.target.value })
@@ -324,9 +376,9 @@ export function ElasticsearchSearchAdvanced() {
                   <Label>Valor Final</Label>
                   <Input
                     type={
-                      getFieldType(newFilter.field) === "number"
+                      newFilter.type === "int"
                         ? "number"
-                        : getFieldType(newFilter.field) === "date"
+                        : newFilter.type === "date"
                           ? "datetime-local"
                           : "text"
                     }
@@ -344,6 +396,7 @@ export function ElasticsearchSearchAdvanced() {
                   onClick={addFilter}
                   disabled={
                     !newFilter.field ||
+                    !newFilter.type ||
                     !newFilter.operator ||
                     !newFilter.value ||
                     (newFilter.operator === "between" && !newFilter.value2)
@@ -371,6 +424,9 @@ export function ElasticsearchSearchAdvanced() {
                     className="flex items-center space-x-2 p-2"
                   >
                     <div className="flex items-center space-x-1">
+                      <Badge variant="outline" className="text-xs">
+                        {filter.type}
+                      </Badge>
                       <span className="font-medium">{filter.field}</span>
                       <span className="text-xs opacity-75">
                         {getOperatorLabel(filter.type, filter.operator)}
@@ -407,10 +463,23 @@ export function ElasticsearchSearchAdvanced() {
             </Button>
 
             {searchResults.length > 0 && (
-              <Button variant="outline" onClick={exportResults}>
-                <Download className="h-4 w-4 mr-2" />
-                Exportar Resultados
-              </Button>
+              <>
+                <Button
+                  onClick={verifyIntegrity}
+                  disabled={isVerifying}
+                  className="flex items-center space-x-2 bg-gradient-to-r from-green-600 to-emerald-600"
+                >
+                  <Shield className="h-4 w-4" />
+                  <span>
+                    {isVerifying ? "Verificando..." : "Verificar Integridade"}
+                  </span>
+                </Button>
+
+                <Button variant="outline" onClick={exportResults}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Resultados
+                </Button>
+              </>
             )}
 
             {filters.length > 0 && (
@@ -427,11 +496,11 @@ export function ElasticsearchSearchAdvanced() {
       {hasSearched && (
         <Card>
           <CardHeader>
-            <CardTitle>Resultados da Busca</CardTitle>
+            <CardTitle>Documentos Encontrados</CardTitle>
             <CardDescription>
               {isSearching
                 ? "Executando busca com filtros..."
-                : `${searchResults.length} logs encontrados`}
+                : `${searchResults.length} documentos encontrados`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -441,54 +510,71 @@ export function ElasticsearchSearchAdvanced() {
               </div>
             ) : searchResults.length > 0 ? (
               <div className="space-y-4">
-                <div className="border rounded-lg">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead>Level</TableHead>
-                        <TableHead>Usuário</TableHead>
-                        <TableHead>Serviço</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Duração</TableHead>
-                        <TableHead>Mensagem</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {searchResults.map((result) => (
-                        <TableRow key={result.id}>
-                          <TableCell className="font-mono text-sm">
-                            {new Date(result.timestamp).toLocaleString()}
-                          </TableCell>
-                          <TableCell>{getLevelBadge(result.level)}</TableCell>
-                          <TableCell>{result.user}</TableCell>
-                          <TableCell>{result.service}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                result.status_code >= 400
-                                  ? "destructive"
-                                  : "default"
-                              }
-                            >
-                              {result.status_code}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">
-                            {result.duration}ms
-                          </TableCell>
-                          <TableCell className="max-w-xs truncate">
-                            {result.message}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                {searchResults.map((doc) => (
+                  <Card key={doc.id} className="border-l-4 border-l-blue-500">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            {doc.id}
+                          </Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            {doc.index}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground font-mono">
+                            {new Date(doc.timestamp).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(doc.source).map(([key, value]) => (
+                          <div key={key} className="space-y-1">
+                            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                              {key.replace(/_/g, " ")}
+                            </Label>
+                            <div className="text-sm">
+                              {typeof value === "boolean" ? (
+                                <Badge
+                                  variant={value ? "default" : "secondary"}
+                                >
+                                  {value ? "True" : "False"}
+                                </Badge>
+                              ) : typeof value === "number" ? (
+                                <span className="font-mono">{value}</span>
+                              ) : typeof value === "string" &&
+                                value.length > 50 ? (
+                                <div className="truncate" title={value}>
+                                  {value}
+                                </div>
+                              ) : (
+                                <span>{String(value)}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
 
-                <div className="flex items-center justify-between">
+                      {/* Raw JSON View Toggle */}
+                      <details className="mt-4">
+                        <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                          Ver JSON completo
+                        </summary>
+                        <pre className="mt-2 p-3 bg-muted rounded-md text-xs overflow-x-auto">
+                          {JSON.stringify(doc.source, null, 2)}
+                        </pre>
+                      </details>
+                    </CardContent>
+                  </Card>
+                ))}
+
+                <div className="flex items-center justify-between pt-4">
                   <p className="text-sm text-muted-foreground">
-                    Mostrando {searchResults.length} resultados | Filtros
+                    Mostrando {searchResults.length} documentos | Filtros
                     aplicados: {filters.length}
                   </p>
                   <p className="text-sm text-muted-foreground">
@@ -512,12 +598,89 @@ export function ElasticsearchSearchAdvanced() {
         </Card>
       )}
 
-      {/* Search Tips */}
+      {/* Verification Results */}
+      {verificationResults.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-green-600" />
+              <span>Resultados da Verificação de Integridade</span>
+            </CardTitle>
+            <CardDescription>
+              {isVerifying
+                ? "Verificando integridade dos documentos..."
+                : `${verificationResults.length} documentos verificados`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isVerifying ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID do Documento</TableHead>
+                        <TableHead>Hash Elasticsearch</TableHead>
+                        <TableHead>Hash Ethereum</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Verificado em</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {verificationResults.map((result) => (
+                        <TableRow key={result.documentId}>
+                          <TableCell className="font-mono text-sm">
+                            {result.documentId}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs max-w-xs truncate">
+                            {result.hashElastic}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs max-w-xs truncate">
+                            {result.hashEthereum}
+                          </TableCell>
+                          <TableCell>
+                            {getVerificationBadge(result.isIntact)}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {new Date(result.verifiedAt).toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex space-x-4">
+                    <p className="text-sm text-green-600">
+                      ✓ {verificationResults.filter((r) => r.isIntact).length}{" "}
+                      documentos íntegros
+                    </p>
+                    <p className="text-sm text-red-600">
+                      ✗ {verificationResults.filter((r) => !r.isIntact).length}{" "}
+                      documentos comprometidos
+                    </p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Tempo de verificação: 2.8s
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Usage Guide */}
       <Card>
         <CardHeader>
-          <CardTitle>Guia de Busca Avançada</CardTitle>
+          <CardTitle>Guia de Uso - Filtros Personalizados</CardTitle>
           <CardDescription>
-            Como usar efetivamente os filtros por tipo de campo
+            Como criar filtros efetivos com chaves e tipos personalizados
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -529,16 +692,13 @@ export function ElasticsearchSearchAdvanced() {
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
+                  • <strong>Chaves comuns:</strong> message, user, service
+                </li>
+                <li>
                   • <strong>Igual a:</strong> Correspondência exata
                 </li>
                 <li>
                   • <strong>Contém:</strong> Busca substring
-                </li>
-                <li>
-                  • <strong>Começa com:</strong> Prefixo
-                </li>
-                <li>
-                  • <strong>Termina com:</strong> Sufixo
                 </li>
                 <li>
                   • <strong>Regex:</strong> Expressão regular
@@ -547,21 +707,21 @@ export function ElasticsearchSearchAdvanced() {
             </div>
             <div>
               <h4 className="font-medium mb-3 flex items-center space-x-2">
-                <Badge variant="outline">Number</Badge>
+                <Badge variant="outline">Integer</Badge>
                 <span>Campos Numéricos</span>
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
-                  • <strong>Igual a:</strong> Valor exato
+                  • <strong>Chaves comuns:</strong> status_code, duration, bytes
                 </li>
                 <li>
                   • <strong>Maior que:</strong> Valor superior
                 </li>
                 <li>
-                  • <strong>Menor que:</strong> Valor inferior
+                  • <strong>Entre:</strong> Faixa de valores
                 </li>
                 <li>
-                  • <strong>Entre:</strong> Faixa de valores
+                  • <strong>Igual a:</strong> Valor exato
                 </li>
               </ul>
             </div>
@@ -572,16 +732,16 @@ export function ElasticsearchSearchAdvanced() {
               </h4>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>
+                  • <strong>Chaves comuns:</strong> timestamp, created_at
+                </li>
+                <li>
                   • <strong>Depois de:</strong> Data posterior
                 </li>
                 <li>
-                  • <strong>Antes de:</strong> Data anterior
+                  • <strong>Últimas X horas:</strong> Período relativo
                 </li>
                 <li>
                   • <strong>Entre:</strong> Período específico
-                </li>
-                <li>
-                  • <strong>Últimas X horas/dias:</strong> Período relativo
                 </li>
               </ul>
             </div>
