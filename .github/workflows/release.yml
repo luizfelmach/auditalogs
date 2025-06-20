@@ -3,7 +3,7 @@ name: Build and Publish audita
 on:
   push:
     tags:
-      - "v*" # Executa apenas em tags, ex: v1.0.0
+      - "v*"
 
 env:
   IMAGE_NAME: ghcr.io/luizfelmach/audita
