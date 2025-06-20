@@ -4,7 +4,7 @@ WORKDIR /audita
 
 COPY server/Cargo.toml server/Cargo.lock ./
 
-COPY server/static ./static
+COPY ui ../ui
 COPY server/src ./src
 
 RUN cargo build --release
