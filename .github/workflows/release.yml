@@ -9,6 +9,24 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build binary
+        run: cargo build --release
+
+      - name: Upload binary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audita-binary
+          path: target/release/audita
+
   docker:
     runs-on: ubuntu-latest
     permissions:
