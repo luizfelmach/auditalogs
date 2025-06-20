@@ -12,7 +12,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::{error, info};
 
 #[derive(RustEmbed)]
-#[folder = "../ui/dist"]
+#[folder = "./ui/dist"]
 struct Asset;
 
 async fn static_handler(uri: Uri) -> Response {

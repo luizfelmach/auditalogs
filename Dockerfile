@@ -2,10 +2,10 @@ FROM rust:latest AS builder
 
 WORKDIR /audita
 
-COPY server/Cargo.toml server/Cargo.lock ./
+COPY Cargo.toml Cargo.lock ./
 
-COPY ui ../ui
-COPY server/src ./src
+COPY ui ./ui
+COPY src ./src
 
 RUN cargo build --release
 
@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 COPY --from=builder /audita/target/release/audita /usr/bin/audita
-COPY server/config/dev.toml /etc/audita/config.toml
+COPY config/dev.toml /etc/audita/config.toml
 
 EXPOSE 8080
 
