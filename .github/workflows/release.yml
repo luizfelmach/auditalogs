@@ -59,3 +59,21 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+      - name: Download binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: audita-binary
+          path: ./
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: audita
+          generate_release_notes: true
