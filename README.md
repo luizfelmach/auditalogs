@@ -52,7 +52,7 @@ docker run -p 8080:8080 -v config.toml:/etc/audita/config.toml ghcr.io/luizfelma
 Download the latest binary from the [Releases Page](https://github.com/luizfelmach/audita/releases):
 
 ```bash
-curl -L https://github.com/luizfelmach/audita/releases/latest/download/audita-x86_64-linux -o audita
+curl -L https://github.com/luizfelmach/audita/releases/download/<version>/audita -o audita
 chmod +x audita
 ./audita --config config.toml
 ```
