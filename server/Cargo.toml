@@ -1,5 +1,5 @@
 [package]
-name = "auditaserver"
+name = "audita"
 version = "0.1.0"
 edition = "2021"
 
@@ -20,3 +20,5 @@ anyhow = "1.0.97"
 clap = { version = "4.5.36", features = ["derive"] }
 prometheus = "0.14.0"
 tower-http = { version = "0.6.2", features = ["cors"] }
+rust-embed = "8.7.2"
+mime_guess = "2.0.5"
