@@ -26,4 +26,6 @@ RUN cat <<EOF > /entrypoint.sh
 exec audita --config /etc/audita/config.toml | tee -a /var/log/audita.log
 EOF
 
+RUN chmod +x /entrypoint.sh
+
 ENTRYPOINT [ "/entrypoint.sh" ]
