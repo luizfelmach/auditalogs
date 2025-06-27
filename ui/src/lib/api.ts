@@ -1,9 +1,11 @@
 import type { ElasticsearchDocument } from "@/types/search";
 
+const BASE_URL = import.meta.env.AUDITA_URL ?? "";
+
 export async function searchDocuments(
   query: any,
 ): Promise<ElasticsearchDocument[]> {
-  const url = `${import.meta.env.AUDITA_URL}/elastic/search`;
+  const url = `${BASE_URL}/elastic/search`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -31,7 +33,7 @@ export async function searchDocuments(
 export async function retrieveElasticHash(
   index: string,
 ): Promise<string | null> {
-  const url = `${import.meta.env.AUDITA_URL}/elastic/${index}`;
+  const url = `${BASE_URL}/elastic/${index}`;
   const response = await fetch(url);
   if (!response.ok) {
     return null;
@@ -44,7 +46,7 @@ export async function retrieveElasticHash(
 export async function retrieveEthereumHash(
   index: string,
 ): Promise<string | null> {
-  const url = `${import.meta.env.AUDITA_URL}/ethereum/${index}`;
+  const url = `${BASE_URL}/ethereum/${index}`;
   const response = await fetch(url);
   if (!response.ok) {
     return null;
