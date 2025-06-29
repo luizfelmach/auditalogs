@@ -20,7 +20,7 @@ pub async fn worker(state: Arc<AppState>) {
         debug!(?batch);
         state.prometheus.logs_queue.dec();
 
-        batch.add(&raw);
+        batch.add(&raw).unwrap();
 
         if let Err(e) = flush_offchain(&state, &batch, raw).await {
             warn!( error = %e, ?batch, "failed to send document to offchain, skipping..." );
@@ -45,11 +45,7 @@ pub async fn worker(state: Arc<AppState>) {
 }
 
 async fn flush_offchain(state: &AppState, batch: &Batch, doc: Map<String, Value>) -> Result<()> {
-    let item = Storable {
-        id: batch.id.clone(),
-        ord: batch.count,
-        doc,
-    };
+    let item = Storable { id: batch.id.clone(), ord: batch.count, doc };
     state.tx.storage.send(item).await?;
     state.prometheus.elastic_queue.inc();
     Ok(())

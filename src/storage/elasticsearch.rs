@@ -21,14 +21,9 @@ impl ElasticsearchAdapter {
     pub fn new(url: String, username: String, password: String) -> Result<Self> {
         let pool = SingleNodeConnectionPool::new(url.parse()?);
         let credentials = Credentials::Basic(username, password);
-        let transport = TransportBuilder::new(pool)
-            .auth(credentials)
-            .cert_validation(CertificateValidation::None)
-            .build()?;
+        let transport = TransportBuilder::new(pool).auth(credentials).cert_validation(CertificateValidation::None).build()?;
 
-        Ok(Self {
-            client: Elasticsearch::new(transport),
-        })
+        Ok(Self { client: Elasticsearch::new(transport) })
     }
 }
 
@@ -81,14 +76,7 @@ impl Storage for ElasticsearchAdapter {
                 search["search_after"] = json!(values);
             }
 
-            let hits = self
-                .client
-                .search(SearchParts::None)
-                .body(search)
-                .send()
-                .await?
-                .json::<Value>()
-                .await?["hits"]["hits"]
+            let hits = self.client.search(SearchParts::None).body(search).send().await?.json::<Value>().await?["hits"]["hits"]
                 .as_array()
                 .cloned()
                 .unwrap_or_default();
@@ -99,23 +87,10 @@ impl Storage for ElasticsearchAdapter {
 
             for hit in &hits {
                 if let Some(mut source) = hit["_source"].as_object().cloned() {
-                    let ord = source
-                        .remove("audita_ord")
-                        .as_ref()
-                        .and_then(Value::as_u64)
-                        .unwrap() as usize;
-                    let id = source
-                        .remove("audita_id")
-                        .as_ref()
-                        .and_then(Value::as_str)
-                        .unwrap()
-                        .to_string();
+                    let ord = source.remove("audita_ord").as_ref().and_then(Value::as_u64).unwrap() as usize;
+                    let id = source.remove("audita_id").as_ref().and_then(Value::as_str).unwrap().to_string();
 
-                    results.push(super::Storable {
-                        id,
-                        ord,
-                        doc: source,
-                    });
+                    results.push(super::Storable { id, ord, doc: source });
                 }
             }
 
@@ -134,12 +109,7 @@ impl Storage for ElasticsearchAdapter {
             "size": 50
         });
 
-        let response = self
-            .client
-            .search(SearchParts::None)
-            .body(search)
-            .send()
-            .await?;
+        let response = self.client.search(SearchParts::None).body(search).send().await?;
 
         let body = response.json::<Value>().await?;
         let hits = body["hits"]["hits"].as_array().cloned().unwrap_or_default();
@@ -151,11 +121,7 @@ impl Storage for ElasticsearchAdapter {
                 let ord = source.remove("audita_ord")?.as_u64()? as usize;
                 let id = source.remove("audita_id")?.as_str()?.to_string();
 
-                Some(super::Storable {
-                    id,
-                    ord,
-                    doc: source,
-                })
+                Some(super::Storable { id, ord, doc: source })
             })
             .collect();
 
@@ -168,9 +134,7 @@ impl ElasticsearchAdapter {
         let field = &cond.field;
         let query = match &cond.op {
             Operator::EqString(val) => json!({ "term": { format!("{field}.keyword"): val } }),
-            Operator::NeqString(val) => {
-                json!({ "bool": { "must_not": { "term": { field: val } } } })
-            }
+            Operator::NeqString(val) => json!({ "bool": { "must_not": { "term": { field: val } } } }),
             Operator::Contains(val) => json!({ "wildcard": { field: format!("*{}*", val) } }),
             Operator::StartsWith(val) => json!({ "prefix": { field: val } }),
             Operator::EndsWith(val) => json!({ "wildcard": { field: format!("*{}", val) } }),
@@ -179,18 +143,12 @@ impl ElasticsearchAdapter {
             Operator::NeqInt(val) => json!({ "bool": { "must_not": { "term": { field: val } } } }),
             Operator::GtInt(val) => json!({ "range": { field: { "gt": val } } }),
             Operator::LtInt(val) => json!({ "range": { field: { "lt": val } } }),
-            Operator::BetweenInt(min, max) => {
-                json!({ "range": { field: { "gte": min, "lte": max } } })
-            }
+            Operator::BetweenInt(min, max) => json!({ "range": { field: { "gte": min, "lte": max } } }),
             Operator::EqDate(dt) => json!({ "term": { field: dt.to_rfc3339() } }),
-            Operator::NeqDate(dt) => {
-                json!({ "bool": { "must_not": { "term": { field: dt.to_rfc3339() } } } })
-            }
+            Operator::NeqDate(dt) => json!({ "bool": { "must_not": { "term": { field: dt.to_rfc3339() } } } }),
             Operator::AfterDate(dt) => json!({ "range": { field: { "gt": dt.to_rfc3339() } } }),
             Operator::BeforeDate(dt) => json!({ "range": { field: { "lt": dt.to_rfc3339() } } }),
-            Operator::BetweenDate(start, end) => json!({
-                "range": { field: { "gte": start.to_rfc3339(), "lte": end.to_rfc3339() } }
-            }),
+            Operator::BetweenDate(start, end) => json!({ "range": { field: { "gte": start.to_rfc3339(), "lte": end.to_rfc3339() } } }),
         };
         Ok(query)
     }

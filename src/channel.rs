@@ -21,11 +21,7 @@ pub fn new(channel_size: usize) -> (TxChannel, RxChannel) {
     let (ethereum_tx, ethereum_rx) = mpsc::channel(channel_size);
     let (elastic_tx, elastic_rx) = mpsc::channel(channel_size);
 
-    let shared = TxChannel {
-        worker: Arc::new(worker_tx),
-        ethereum: Arc::new(ethereum_tx),
-        storage: Arc::new(elastic_tx),
-    };
+    let shared = TxChannel { worker: Arc::new(worker_tx), ethereum: Arc::new(ethereum_tx), storage: Arc::new(elastic_tx) };
 
     let receivers = RxChannel {
         worker: Arc::new(Mutex::new(worker_rx)),

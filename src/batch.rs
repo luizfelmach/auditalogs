@@ -12,11 +12,7 @@ pub struct Batch {
 
 impl Batch {
     pub fn new() -> Self {
-        Self {
-            id: Uuid::new_v4().to_string(),
-            hash: Hash256::zero(),
-            count: 0,
-        }
+        Self { id: Uuid::new_v4().to_string(), hash: Hash256::zero(), count: 0 }
     }
 
     pub fn add(&mut self, data: &Document) -> Result<()> {

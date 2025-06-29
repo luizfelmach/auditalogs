@@ -24,10 +24,7 @@ pub async fn server(state: Arc<AppState>) {
 }
 
 fn create_app(state: AppState) -> Router {
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods(Any)
-        .allow_headers(Any);
+    let cors = CorsLayer::new().allow_origin(Any).allow_methods(Any).allow_headers(Any);
 
     Router::new()
         .nest("/api", routes::api())

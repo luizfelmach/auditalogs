@@ -10,10 +10,7 @@ pub async fn ethereum(state: Arc<AppState>) {
 
     let mut buffer = Vec::new();
 
-    info!(
-        "ethereum worker started with disable: {}, batch_size: {}",
-        ethereum.disable, config.ethereum_batch_size
-    );
+    info!("ethereum worker started with disable: {}, batch_size: {}", ethereum.disable, config.ethereum_batch_size);
 
     while let Some(msg) = rx.ethereum.lock().await.recv().await {
         state.prometheus.ethereum_queue.dec();
@@ -45,10 +42,7 @@ pub async fn ethereum(state: Arc<AppState>) {
             for content in buffer.iter() {
                 trace!(current_nonce = nonce,  hash = ?content.hash,
                        "sending transaction");
-                match client
-                    .store(nonce, &content.id, content.hash.as_bytes().into())
-                    .await
-                {
+                match client.store(nonce, &content.id, content.hash.as_bytes().into()).await {
                     Ok(tx_hash) => txs.push((nonce, tx_hash)),
                     Err(err) => {
                         error!(nonce = nonce, error = ?err, "failed to send tx");
@@ -57,10 +51,7 @@ pub async fn ethereum(state: Arc<AppState>) {
                 nonce += 1;
             }
 
-            debug!(
-                tx_count = txs.len(),
-                "waiting for transaction confirmations"
-            );
+            debug!(tx_count = txs.len(), "waiting for transaction confirmations");
             for (tx_nonce, tx_hash) in &txs {
                 trace!(tx_nonce = tx_nonce, tx_hash = ?tx_hash, "waiting for tx confirmation");
                 match client.wait_tx(*tx_hash).await {

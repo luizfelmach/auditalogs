@@ -26,11 +26,7 @@ impl EthereumClient {
         let contract = contract.parse()?;
         let instance = Auditability::new(contract, provider.clone());
 
-        Ok(Self {
-            provider,
-            signer,
-            instance,
-        })
+        Ok(Self { provider, signer, instance })
     }
 
     pub async fn nonce(&self) -> Result<u64> {
@@ -55,12 +51,7 @@ impl EthereumClient {
 
         Ok(receipt.transaction_hash)
     }
-    pub async fn store(
-        &self,
-        nonce: u64,
-        index: &String,
-        hash: FixedBytes<32>,
-    ) -> Result<FixedBytes<32>> {
+    pub async fn store(&self, nonce: u64, index: &String, hash: FixedBytes<32>) -> Result<FixedBytes<32>> {
         let mut attempt = 0;
 
         loop {

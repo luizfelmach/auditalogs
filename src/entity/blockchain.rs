@@ -9,9 +9,6 @@ pub struct Fingerprint {
 
 impl Fingerprint {
     pub fn new(id: impl Into<String>, hash: Hash256) -> Self {
-        Self {
-            id: id.into(),
-            hash,
-        }
+        Self { id: id.into(), hash }
     }
 }
