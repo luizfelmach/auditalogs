@@ -1,55 +1,64 @@
-use std::sync::Arc;
-
 use crate::{
-    channel::{ElasticChannelItem, EthereumChannelItem},
+    batch::Batch,
+    entity::{Fingerprint, Storable},
     state::AppState,
-    utils::{elastic_index, fingerprint},
 };
-use tracing::{debug, error, info, trace};
+use anyhow::Result;
+use serde_json::{Map, Value};
+use std::sync::Arc;
+use tracing::{debug, error, info, trace, warn};
 
 pub async fn worker(state: Arc<AppState>) {
-    let config = state.config.clone();
+    let mut batch = Batch::new();
+    let config = &state.config;
     let rx = state.rx.clone();
-    let tx = state.tx.clone();
-    let mut counter = 0;
-    let mut hash = String::new();
-    let mut index = elastic_index(&config.name);
 
-    info!("worker started with batch_size: {}", config.batch_size);
-    debug!(counter = counter, hash = hash, index = index, "state");
+    info!("worker started");
 
-    while let Some(msg) = rx.worker.lock().await.recv().await {
+    while let Some(raw) = rx.worker.lock().await.recv().await {
+        trace!(?raw, "received new document from queue");
+        debug!(?batch);
         state.prometheus.logs_queue.dec();
-        trace!(?msg, "received message for processing");
 
-        hash = fingerprint(&hash, &msg);
-        counter += 1;
+        batch.add(&raw);
 
-        debug!(counter = counter, hash = hash, index = index, "state");
-
-        let item = ElasticChannelItem::new(index.clone(), msg.clone());
-        if let Err(err) = tx.elastic.send(item).await {
-            error!("failed to send message to elastic channel: {:?}", err);
+        if let Err(e) = flush_offchain(&state, &batch, raw).await {
+            warn!( error = %e, ?batch, "failed to send document to offchain, skipping..." );
         }
 
-        state.prometheus.elastic_queue.inc();
-
-        if counter >= config.batch_size {
-            let item = EthereumChannelItem::new(index.clone(), hash.clone().parse().unwrap());
-            if let Err(err) = tx.ethereum.send(item).await {
-                error!("failed to send message to ethereum channel: {:?}", err);
+        if batch.count >= config.batch_size {
+            if let Err(e) = flush_onchain(&state, &batch).await {
+                error!( error = %e, ?batch, "error sending batch onchain, skipping..." );
+            } else {
+                info!(?batch, "batch sent successfully");
             }
-
-            state.prometheus.ethereum_queue.inc();
-
-            info!(
-                "batch processing completed. items processed: {}, index: {} ({})",
-                counter, index, hash
-            );
-
-            counter = 0;
-            hash.clear();
-            index = elastic_index(&config.name);
+            batch.reset();
         }
     }
+    if batch.count > 0 {
+        info!(?batch, "sending final batch");
+
+        if let Err(e) = flush_onchain(&state, &batch).await {
+            error!( error = %e, ?batch, "error sending final batch onchain, skipping..." );
+        }
+    }
+}
+
+async fn flush_offchain(state: &AppState, batch: &Batch, doc: Map<String, Value>) -> Result<()> {
+    let item = Storable {
+        id: batch.id.clone(),
+        ord: batch.count,
+        doc,
+    };
+    state.tx.storage.send(item).await?;
+    state.prometheus.elastic_queue.inc();
+    Ok(())
+}
+
+async fn flush_onchain(state: &AppState, batch: &Batch) -> Result<()> {
+    let (id, hash) = (batch.id.clone(), batch.hash);
+    let item = Fingerprint { hash, id };
+    state.tx.ethereum.send(item).await?;
+    state.prometheus.ethereum_queue.inc();
+    Ok(())
 }

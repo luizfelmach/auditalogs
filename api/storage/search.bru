@@ -1,0 +1,25 @@
+meta {
+  name: search
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/storage/search
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "and": [
+      {
+        "field": "teste",
+        "op": {
+          "type": "NeqString",
+          "value": "string"
+        }
+      }
+    ]
+  }
+}

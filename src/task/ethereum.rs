@@ -17,7 +17,7 @@ pub async fn ethereum(state: Arc<AppState>) {
 
     while let Some(msg) = rx.ethereum.lock().await.recv().await {
         state.prometheus.ethereum_queue.dec();
-        trace!(?msg.index, hash = ?msg.hash, "received message for ethereum");
+        trace!(hash = ?msg.hash, "received message for ethereum");
 
         if ethereum.disable {
             debug!("ethereum disabled, skipping message");
@@ -43,9 +43,12 @@ pub async fn ethereum(state: Arc<AppState>) {
             let mut txs = Vec::new();
 
             for content in buffer.iter() {
-                trace!(current_nonce = nonce, index = ?content.index, hash = ?content.hash,
+                trace!(current_nonce = nonce,  hash = ?content.hash,
                        "sending transaction");
-                match client.store(nonce, &content.index, content.hash).await {
+                match client
+                    .store(nonce, &content.id, content.hash.as_bytes().into())
+                    .await
+                {
                     Ok(tx_hash) => txs.push((nonce, tx_hash)),
                     Err(err) => {
                         error!(nonce = nonce, error = ?err, "failed to send tx");

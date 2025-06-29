@@ -2,7 +2,7 @@ host = "0.0.0.0"
 port = 8080
 name = "worker"
 queue_size = 8192
-batch_size = 100_000
+batch_size = 5
 ethereum_batch_size = 1
 threads = 1
 

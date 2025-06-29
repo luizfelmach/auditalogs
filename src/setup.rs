@@ -1,9 +1,6 @@
 use crate::{
-    channel,
-    client::{elastic::ElasticClient, ethereum::EthereumClient},
-    config::AppConfig,
-    prometheus::Prometheus,
-    state::AppState,
+    channel, client::ethereum::EthereumClient, config::AppConfig, prometheus::Prometheus,
+    state::AppState, storage::elasticsearch::ElasticsearchAdapter,
 };
 use clap::Parser;
 use std::{env, process, sync::Arc};
@@ -55,14 +52,14 @@ pub fn state() -> Arc<AppState> {
 
     let (tx, rx) = channel::new(config.queue_size);
 
-    let elastic = ElasticClient::new(
+    let storage = ElasticsearchAdapter::new(
         config.elastic.url.clone(),
         config.elastic.username.clone(),
         config.elastic.password.clone(),
     );
 
-    let Ok(elastic) = elastic else {
-        error!("error creating elastic client: {:?}", elastic);
+    let Ok(storage) = storage else {
+        error!("error creating elastic client: {:?}", storage);
         process::exit(1);
     };
 
@@ -83,7 +80,7 @@ pub fn state() -> Arc<AppState> {
         config,
         tx,
         rx,
-        elastic,
+        storage,
         ethereum,
         prometheus,
     });

@@ -11,7 +11,7 @@ alloy = { version = "0.12.2", features = ["full"] }
 elasticsearch = "8.16.0-alpha.1"
 sha2 = "0.10.8"
 rand = "0.8.5"
-chrono = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
 axum = "0.8.3"
 toml = "0.8.20"
 tracing = "0.1.41"
@@ -19,6 +19,8 @@ tracing-subscriber = "0.3.19"
 anyhow = "1.0.97"
 clap = { version = "4.5.36", features = ["derive"] }
 prometheus = "0.14.0"
-tower-http = { version = "0.6.2", features = ["cors"] }
+tower-http = { version = "0.6.2", features = ["cors", "normalize-path"] }
 rust-embed = "8.7.2"
 mime_guess = "2.0.5"
+uuid = { version = "1.17.0", features = ["v4"] }
+moka = { version = "0.12.10", features = ["future"] }

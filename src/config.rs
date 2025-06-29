@@ -8,7 +8,6 @@ use toml;
 pub struct AppConfig {
     pub host: String,
     pub port: u16,
-    pub name: String,
     pub queue_size: usize,
     pub batch_size: usize,
     pub ethereum_batch_size: usize,
