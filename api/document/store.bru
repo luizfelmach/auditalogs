@@ -4,8 +4,18 @@ meta {
   seq: 1
 }
 
-get {
-  url: 
-  body: none
+post {
+  url: {{host}}
+  body: json
   auth: inherit
+}
+
+body:json {
+  {
+    "data": [
+      12,
+      12,
+      12
+    ]
+  }
 }
